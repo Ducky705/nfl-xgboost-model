@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+venv/
+.env
+
+# Model & Data (Keep these private)
+nfl_bettor.json
+data/nfl_db.pkl

@@ -1,0 +1,43 @@
+name: NFL Bot Auto-Update
+
+on:
+  schedule:
+    # Run heavy data update (training) only on Tuesdays at 8:00 AM UTC
+    - cron: '0 8 * * 2'
+    # Run dashboard update (odds & grading) Daily at 9:00 AM UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch:      # Allows manual "Click to Run" button
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run Heavy Update (Always run to generate model ephemerally)
+      run: python update_db.py
+
+    - name: Run Dashboard Generation
+      run: python main.py
+
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.name "NFL-Bot"
+        git config --global user.email "bot@nfl.com"
+        git add data/ docs/
+        git commit -m "🏈 Daily Bot Update" || echo "No changes to commit"
+        git push
