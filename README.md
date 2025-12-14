@@ -1,5 +1,10 @@
 # 🏈 NFL XGBoost Handicapper
 
+### 🔴 [CLICK HERE TO OPEN LIVE DASHBOARD](https://ducky705.github.io/nfl-xgboost-model/) 🔴
+*(https://ducky705.github.io/nfl-xgboost-model/)*
+
+---
+
 **Automated Institutional-Grade NFL Betting Model**
 
 [![Model Update](https://github.com/Ducky705/nfl-xgboost-model/actions/workflows/update_picks.yml/badge.svg)](https://github.com/Ducky705/nfl-xgboost-model/actions/workflows/update_picks.yml)
