@@ -64,9 +64,9 @@
                     <td class="px-4 py-4 font-bold win">+{{ bet.Edge }}</td>
                     <td class="px-4 py-4 font-bold text-white">{{ bet.Action }}</td>
                     <td class="px-4 py-4">
-                        {% if bet.Conf %}
+                        {% if 'None' not in bet.Conf %}
                         <span class="px-2 py-1 rounded text-xs font-bold 
-                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.Conf else 'bg-yellow-900 text-yellow-200' }}">
+                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.Conf else ('bg-green-900 text-green-200' if 'SOLID' in bet.Conf else 'bg-yellow-900 text-yellow-200') }}">
                             {{ bet.Conf }}
                         </span>
                         {% else %}
@@ -108,9 +108,9 @@
                     <td class="px-4 py-3 win">+{{ bet.edge }}</td>
                     <td class="px-4 py-3 font-bold">{{ bet.pick }}</td>
                     <td class="px-4 py-3">
-                        {% if bet.conf %}
+                        {% if 'None' not in bet.conf %}
                         <span class="px-1 py-0.5 rounded text-xs font-bold 
-                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.conf else 'bg-yellow-900 text-yellow-200' }}">
+                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.conf else ('bg-green-900 text-green-200' if 'SOLID' in bet.conf else 'bg-yellow-900 text-yellow-200') }}">
                             {{ bet.conf }}
                         </span>
                         {% else %}

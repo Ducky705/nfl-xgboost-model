@@ -5,3 +5,6 @@ nfl_data_py
 scikit-learn
 jinja2
 tabulate
+scipy
+matplotlib
+seaborn

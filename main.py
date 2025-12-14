@@ -5,12 +5,55 @@ import webbrowser
 from jinja2 import Environment, FileSystemLoader
 from tabulate import tabulate
 from datetime import datetime
+from scipy.stats import norm
 
 # --- CONFIG ---
 CACHE_PATH = "data/nfl_db.pkl"
 DATA_PATH = "data/betting_history.csv"
 DOCS_PATH = "docs/index.html"
 FIX_VEGAS_SIGNS = True 
+
+# --- KELLY CRITERION FUNCTION ---
+def calculate_kelly_units(abs_edge):
+    """Calculates Kelly Unit size based on point spread edge."""
+    # Constants
+    STD_DEV = 13.86           # Standard deviation of NFL spread errors
+    PAYOUT_RATIO = 0.9091     # Net odds for -110 (10/11)
+    MIN_EDGE = 1.0            # Minimum edge to bet
+    MAX_UNITS = 2.0           # Strict Max Bet
+    
+    # 0.05 (5% Kelly) ensures only massive edges hit the 2.0u cap
+    KELLY_FRACTION = 0.05     
+
+    if abs_edge < MIN_EDGE:
+        return 0.0, "None"
+
+    # 1. Win Probability (p)
+    z_score = abs_edge / STD_DEV
+    p = norm.cdf(z_score) 
+    q = 1.0 - p
+
+    # 2. Kelly Fraction (K)
+    full_kelly_percent = (p - (q / PAYOUT_RATIO)) * 100
+    
+    # Apply 5% Kelly
+    kelly_units = max(0.0, full_kelly_percent * KELLY_FRACTION)
+    
+    # 3. Rounding & Capping
+    units = round(min(kelly_units, MAX_UNITS), 1)
+    
+    # Dynamic Confidence Labels based on Unit Size
+    if units >= 1.5: 
+        conf = "🔥 STRONG"
+    elif units >= 0.8:
+        conf = "💪 SOLID" 
+    elif units >= 0.1:
+        conf = "⚠️ LEAN"
+    else:
+        conf = "None"
+        
+    return units, conf
+
 
 # --- HTML TEMPLATE ---
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -79,9 +122,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     <td class="px-4 py-4 font-bold win">+{{ bet.Edge }}</td>
                     <td class="px-4 py-4 font-bold text-white">{{ bet.Action }}</td>
                     <td class="px-4 py-4">
-                        {% if bet.Conf %}
+                        {% if 'None' not in bet.Conf %}
                         <span class="px-2 py-1 rounded text-xs font-bold 
-                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.Conf else 'bg-yellow-900 text-yellow-200' }}">
+                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.Conf else ('bg-green-900 text-green-200' if 'SOLID' in bet.Conf else 'bg-yellow-900 text-yellow-200') }}">
                             {{ bet.Conf }}
                         </span>
                         {% else %}
@@ -123,9 +166,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     <td class="px-4 py-3 win">+{{ bet.edge }}</td>
                     <td class="px-4 py-3 font-bold">{{ bet.pick }}</td>
                     <td class="px-4 py-3">
-                        {% if bet.conf %}
+                        {% if 'None' not in bet.conf %}
                         <span class="px-1 py-0.5 rounded text-xs font-bold 
-                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.conf else 'bg-yellow-900 text-yellow-200' }}">
+                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.conf else ('bg-green-900 text-green-200' if 'SOLID' in bet.conf else 'bg-yellow-900 text-yellow-200') }}">
                             {{ bet.conf }}
                         </span>
                         {% else %}
@@ -184,22 +227,20 @@ def run_backfill(model, games_df):
         diff = fair_line - vegas_line
         if abs(diff) > 10: fair_line = vegas_line + (diff * 0.5) 
         
-        # --- POSITIVE EDGE LOGIC ---
+        # --- KELLY CRITERION LOGIC ---
         raw_edge = round(vegas_line - fair_line, 2)
         abs_edge = abs(raw_edge)
         
-        action = "PASS"; conf = ""; units = 0.0
+        units, conf_badge = calculate_kelly_units(abs_edge)
         
-        if abs_edge >= 3.5:
-            action = f"BET {game['home_team']}" if raw_edge > 0 else f"BET {game['away_team']}"
-            conf = "STRONG"
-            units = 2.0
-        elif abs_edge >= 1.5:
-            action = f"BET {game['home_team']}" if raw_edge > 0 else f"BET {game['away_team']}"
-            conf = "LEAN"
-            units = 1.0
+        action = "PASS"; conf = ""; 
+        
+        if units > 0.0:
+            pick_team = game['home_team'] if raw_edge > 0 else game['away_team']
+            action = f"BET {pick_team}"
+            # Remove emojis for history table
+            conf = conf_badge.replace("🔥 ", "").replace("⚠️ ", "").replace("💪 ", "").replace("None", "")
             
-        if "BET" in action:
             pick = action.replace("BET ", "")
             actual = game['result']
             
@@ -207,12 +248,12 @@ def run_backfill(model, games_df):
             
             if pick == game['home_team']:
                 if actual > game['spread_line']: 
-                    res = 'WIN'; profit = 0.91 * units
+                    res = 'WIN'; profit = round(0.91 * units, 2)
                 elif actual == game['spread_line']: 
                     res = 'PUSH'; profit = 0.0
             else:
                 if actual < game['spread_line']: 
-                    res = 'WIN'; profit = 0.91 * units
+                    res = 'WIN'; profit = round(0.91 * units, 2)
                 elif actual == game['spread_line']: 
                     res = 'PUSH'; profit = 0.0
             
@@ -222,11 +263,11 @@ def run_backfill(model, games_df):
             bets.append({
                 'season': game['season'], 'week': game['week'], 
                 'matchup': f"{game['away_team']} @ {game['home_team']}",
-                'pick': f"{pick} ({int(units)}u)", 
+                'pick': f"{pick} ({units}u)", 
                 'line_display': vegas_dsp, 'fair_display': fair_dsp,
                 'edge': round(abs_edge, 1),
                 'conf': conf,
-                'result': res, 'profit': round(profit, 2),
+                'result': res, 'profit': profit,
                 'units_wagered': units,
                 'status': 'GRADED', 'game_id': game['game_id']
             })
@@ -255,19 +296,17 @@ def run_predictions(model, games_df):
         diff = fair_line - vegas_line
         if abs(diff) > 10: fair_line = vegas_line + (diff * 0.5)
         
-        # --- POSITIVE EDGE LOGIC ---
+        # --- KELLY CRITERION LOGIC ---
         raw_edge = round(vegas_line - fair_line, 2)
         abs_edge = abs(raw_edge)
         
-        action = "PASS"; conf = ""; units = 0
-        if abs_edge >= 3.5: 
-            units = 2
-            action = f"BET {game['home_team']} ({units}u)" if raw_edge > 0 else f"BET {game['away_team']} ({units}u)"
-            conf = "🔥 STRONG"
-        elif abs_edge >= 1.5: 
-            units = 1
-            action = f"BET {game['home_team']} ({units}u)" if raw_edge > 0 else f"BET {game['away_team']} ({units}u)"
-            conf = "⚠️ LEAN"
+        units, conf_badge = calculate_kelly_units(abs_edge)
+        
+        action = "PASS"; conf = conf_badge; 
+        
+        if units > 0.0: 
+            pick_team = game['home_team'] if raw_edge > 0 else game['away_team']
+            action = f"BET {pick_team} ({units}u)"
         
         vegas_dsp = f"{game['home_team']} {vegas_line:.1f}" if vegas_line < 0 else f"{game['home_team']} +{vegas_line:.1f}"
         fair_dsp = f"{game['home_team']} {fair_line:.1f}" if fair_line < 0 else f"{game['home_team']} +{fair_line:.1f}"

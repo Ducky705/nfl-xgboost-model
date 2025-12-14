@@ -34,6 +34,9 @@ jobs:
     - name: Run Dashboard Generation
       run: python main.py
 
+    - name: Run Graph Generation
+      run: python generate_graphs.py
+
     - name: Commit and Push Changes
       run: |
         git config --global user.name "NFL-Bot"
