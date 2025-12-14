@@ -16,7 +16,6 @@ CURRENT_SEASON = now.year if now.month > 2 else now.year - 1
 YEARS = list(range(2018, CURRENT_SEASON + 1))
 
 def get_team_stats(df, full_pbp):
-    # (Same stats function as before - truncated for brevity but functionality remains)
     gen = df.groupby(['season', 'week', 'posteam']).agg({'epa': 'mean', 'yards_gained': 'mean'}).reset_index().rename(columns={'posteam': 'team', 'epa': 'off_epa', 'yards_gained': 'off_ypp'})
     edsr = df[df['down'].isin([1, 2])].groupby(['season', 'week', 'posteam'])['success'].mean().reset_index().rename(columns={'posteam': 'team', 'success': 'off_edsr'})
     
@@ -113,11 +112,12 @@ if __name__ == "__main__":
     stats = stats.merge(qb_stability, on=['season', 'team'], how='left')
     full_games_df = engineer_features(schedule, stats, qb_db)
 
-    # --- INTELLIGENT TRAINING CHECK ---
+    # --- UPDATED: Switch from XGBRegressor to Booster ---
     model = None
     if os.path.exists(MODEL_PATH):
-        print("✅ Found existing model (Decrypted). SKIPPING training.")
-        model = xgb.XGBRegressor()
+        print("✅ Found existing model (Decrypted). Loading into Booster...")
+        # FIX: Use Booster() instead of XGBRegressor()
+        model = xgb.Booster()
         model.load_model(MODEL_PATH)
     else:
         print("⚡ No model found. Training fresh model...")
@@ -131,15 +131,20 @@ if __name__ == "__main__":
         ]
         y_train = train_data['result'].clip(-21, 21)
         mono_constraints = (1, 1, 1, 1, 1, -1, 1, 1, -1, 1, -1, 1, 0, -1, 1)
-        model = xgb.XGBRegressor(n_estimators=2000, learning_rate=0.01, max_depth=3, min_child_weight=20, 
+        
+        # Train with Regressor, then EXTRACT Booster
+        reg = xgb.XGBRegressor(n_estimators=2000, learning_rate=0.01, max_depth=3, min_child_weight=20, 
                                  reg_alpha=0.5, subsample=0.5, colsample_bytree=0.5, 
                                  monotone_constraints=mono_constraints, n_jobs=-1, objective='reg:squarederror')
-        model.fit(train_data[X_cols], y_train)
+        reg.fit(train_data[X_cols], y_train)
+        
+        # Save as Booster (Cleanest format)
+        model = reg.get_booster()
         model.save_model(MODEL_PATH)
 
     print(f"📦 Updating Cache: {CACHE_PATH}...")
     db = {
-        'model': model,
+        'model': model, # Now always a Booster
         'games_df': full_games_df, 
         'current_season': CURRENT_SEASON,
         'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M UTC")

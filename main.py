@@ -6,6 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 from tabulate import tabulate
 from datetime import datetime
 from scipy.stats import norm
+import xgboost as xgb  # Required for DMatrix
 
 # --- CONFIG ---
 CACHE_PATH = "data/nfl_db.pkl"
@@ -16,44 +17,29 @@ FIX_VEGAS_SIGNS = True
 # --- KELLY CRITERION FUNCTION ---
 def calculate_kelly_units(abs_edge):
     """Calculates Kelly Unit size based on point spread edge."""
-    # Constants
-    STD_DEV = 13.86           # Standard deviation of NFL spread errors
-    PAYOUT_RATIO = 0.9091     # Net odds for -110 (10/11)
-    MIN_EDGE = 1.0            # Minimum edge to bet
-    MAX_UNITS = 2.0           # Strict Max Bet
-    
-    # 0.05 (5% Kelly) ensures only massive edges hit the 2.0u cap
-    KELLY_FRACTION = 0.05     
+    STD_DEV = 13.86
+    PAYOUT_RATIO = 0.9091
+    MIN_EDGE = 1.0
+    MAX_UNITS = 2.0
+    KELLY_FRACTION = 0.05
 
     if abs_edge < MIN_EDGE:
         return 0.0, "None"
 
-    # 1. Win Probability (p)
     z_score = abs_edge / STD_DEV
     p = norm.cdf(z_score) 
     q = 1.0 - p
 
-    # 2. Kelly Fraction (K)
     full_kelly_percent = (p - (q / PAYOUT_RATIO)) * 100
-    
-    # Apply 5% Kelly
     kelly_units = max(0.0, full_kelly_percent * KELLY_FRACTION)
-    
-    # 3. Rounding & Capping
     units = round(min(kelly_units, MAX_UNITS), 1)
     
-    # Dynamic Confidence Labels based on Unit Size
-    if units >= 1.5: 
-        conf = "🔥 STRONG"
-    elif units >= 0.8:
-        conf = "💪 SOLID" 
-    elif units >= 0.1:
-        conf = "⚠️ LEAN"
-    else:
-        conf = "None"
+    if units >= 1.5: conf = "🔥 STRONG"
+    elif units >= 0.8: conf = "💪 SOLID" 
+    elif units >= 0.1: conf = "⚠️ LEAN"
+    else: conf = "None"
         
     return units, conf
-
 
 # --- HTML TEMPLATE ---
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -217,7 +203,16 @@ def run_backfill(model, games_df):
     bets = []
     for _, game in completed.iterrows():
         X = pd.DataFrame([game[X_cols]])
-        raw_pred = -1 * model.predict(X)[0]
+        
+        # --- FIXED PREDICTION FOR BOOSTER ---
+        try:
+            # Try predicting as XGBRegressor
+            raw_pred = -1 * model.predict(X)[0]
+        except:
+            # Fallback to Booster prediction (requires DMatrix)
+            dmat = xgb.DMatrix(X)
+            raw_pred = -1 * model.predict(dmat)[0]
+
         fair_line = max(min(raw_pred, 21), -21)
         
         raw_spread = game['spread_line']
@@ -227,7 +222,6 @@ def run_backfill(model, games_df):
         diff = fair_line - vegas_line
         if abs(diff) > 10: fair_line = vegas_line + (diff * 0.5) 
         
-        # --- KELLY CRITERION LOGIC ---
         raw_edge = round(vegas_line - fair_line, 2)
         abs_edge = abs(raw_edge)
         
@@ -238,7 +232,6 @@ def run_backfill(model, games_df):
         if units > 0.0:
             pick_team = game['home_team'] if raw_edge > 0 else game['away_team']
             action = f"BET {pick_team}"
-            # Remove emojis for history table
             conf = conf_badge.replace("🔥 ", "").replace("⚠️ ", "").replace("💪 ", "").replace("None", "")
             
             pick = action.replace("BET ", "")
@@ -286,7 +279,14 @@ def run_predictions(model, games_df):
     preds = []
     for _, game in week_df.iterrows():
         X = pd.DataFrame([game[X_cols]])
-        raw_pred = -1 * model.predict(X)[0]
+
+        # --- FIXED PREDICTION FOR BOOSTER ---
+        try:
+            raw_pred = -1 * model.predict(X)[0]
+        except:
+            dmat = xgb.DMatrix(X)
+            raw_pred = -1 * model.predict(dmat)[0]
+
         fair_line = max(min(raw_pred, 21), -21)
         
         raw_spread = game['spread_line']
@@ -296,7 +296,6 @@ def run_predictions(model, games_df):
         diff = fair_line - vegas_line
         if abs(diff) > 10: fair_line = vegas_line + (diff * 0.5)
         
-        # --- KELLY CRITERION LOGIC ---
         raw_edge = round(vegas_line - fair_line, 2)
         abs_edge = abs(raw_edge)
         
