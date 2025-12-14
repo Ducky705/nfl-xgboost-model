@@ -15,10 +15,8 @@ now = datetime.now()
 CURRENT_SEASON = now.year if now.month > 2 else now.year - 1
 YEARS = list(range(2018, CURRENT_SEASON + 1))
 
-print(f"🔄 STARTING DB UPDATE for {CURRENT_SEASON}...")
-
 def get_team_stats(df, full_pbp):
-    print("   -> Calculating Stats...")
+    # (Same stats function as before - truncated for brevity but functionality remains)
     gen = df.groupby(['season', 'week', 'posteam']).agg({'epa': 'mean', 'yards_gained': 'mean'}).reset_index().rename(columns={'posteam': 'team', 'epa': 'off_epa', 'yards_gained': 'off_ypp'})
     edsr = df[df['down'].isin([1, 2])].groupby(['season', 'week', 'posteam'])['success'].mean().reset_index().rename(columns={'posteam': 'team', 'success': 'off_edsr'})
     
@@ -38,28 +36,19 @@ def get_team_stats(df, full_pbp):
     merged = merged.merge(tos[['season', 'week', 'posteam', 'turnovers_lost']].rename(columns={'posteam': 'team'}), on=['season', 'week', 'team'], how='left')
     merged = merged.merge(penalties, on=['season', 'week', 'team'], how='left')
     merged = merged.merge(rz, on=['season', 'week', 'team'], how='left')
-    
     pass_df = df[df['pass'] == 1].groupby(['season', 'week', 'posteam'])['epa'].mean().reset_index().rename(columns={'posteam': 'team', 'epa': 'off_pass_epa'})
     merged = merged.merge(pass_df, on=['season', 'week', 'team'], how='left')
-    
     return merged.fillna(0)
 
 def engineer_features(schedule, stats, qb_db):
-    print("   -> Merging & Engineering Features...")
     games = schedule[schedule['game_type'] == 'REG'].copy()
-    
-    # Fix Names
     games['home_team'] = games['home_team'].replace(TEAM_MAP)
     games['away_team'] = games['away_team'].replace(TEAM_MAP)
-    
     games = games.drop(columns=['home_rest', 'away_rest'], errors='ignore')
-
-    # Rest
     games['gameday'] = pd.to_datetime(games['gameday'])
     rest_df = pd.concat([games[['season', 'week', 'gameday', 'home_team']].rename(columns={'home_team': 'team'}), 
                          games[['season', 'week', 'gameday', 'away_team']].rename(columns={'away_team': 'team'})]).sort_values(['team', 'gameday'])
     rest_df['rest'] = (rest_df['gameday'] - rest_df.groupby('team')['gameday'].shift(1)).dt.days.fillna(7).clip(upper=14)
-    
     games = games.merge(rest_df[['season', 'week', 'team', 'rest']], left_on=['season', 'week', 'home_team'], right_on=['season', 'week', 'team']).rename(columns={'rest': 'home_rest'}).drop(columns=['team'])
     games = games.merge(rest_df[['season', 'week', 'team', 'rest']], left_on=['season', 'week', 'away_team'], right_on=['season', 'week', 'team']).rename(columns={'rest': 'away_rest'}).drop(columns=['team'])
 
@@ -72,7 +61,6 @@ def engineer_features(schedule, stats, qb_db):
         games.rename(columns={c: f'{side}_{c}' for c in cols_base}, inplace=True)
         games.drop(columns=['team'], inplace=True)
 
-    # --- CRITICAL FIX: DO NOT FILLNA 'result' ---
     feature_cols = [c for c in games.columns if c not in ['result', 'home_score', 'away_score', 'spread_line', 'game_id', 'season', 'week', 'home_team', 'away_team', 'gameday']]
     games[feature_cols] = games[feature_cols].fillna(0)
     
@@ -87,29 +75,21 @@ def engineer_features(schedule, stats, qb_db):
     games['penalty_diff'] = games['home_pen_yards_long'] - games['away_pen_yards_long']
     games['sack_mismatch_home'] = games['home_off_sack_rate_long'] - games['away_def_sack_rate_long']
     games['sack_mismatch_away'] = games['away_off_sack_rate_long'] - games['home_def_sack_rate_long']
-    
     home_results = games.sort_values(['season', 'week'])[['home_team', 'result']].rename(columns={'home_team': 'team'})
     games['home_field_strength'] = home_results.groupby('team')['result'].transform(lambda x: x.shift(1).expanding().mean()).fillna(2.0)
     games['roof'] = games['roof'].map({'outdoors': 0, 'open': 0, 'closed': 1, 'dome': 1}).fillna(0)
     
     return games
 
-# --- EXECUTION ---
 if __name__ == "__main__":
     print(f"📥 Downloading Data...")
-    try:
-        schedule = nfl.import_schedules(YEARS)
-        pbp = nfl.import_pbp_data(YEARS)
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        exit()
+    schedule = nfl.import_schedules(YEARS)
+    pbp = nfl.import_pbp_data(YEARS)
 
-    print("⚙️  Processing...")
+    print("⚙️  Processing Stats...")
     pbp['posteam'] = pbp['posteam'].replace(TEAM_MAP)
     pbp['defteam'] = pbp['defteam'].replace(TEAM_MAP)
-    
     pbp_clean = pbp[((pbp['pass'] == 1) | (pbp['rush'] == 1)) & (pbp['wp'] > 0.05) & (pbp['wp'] < 0.95)].dropna(subset=['epa', 'posteam', 'defteam', 'success', 'yards_gained'])
-
     stats = get_team_stats(pbp_clean, pbp).sort_values(['team', 'season', 'week'])
 
     metrics = ['off_epa', 'off_ypp', 'off_pass_epa', 'off_edsr', 'off_sack_rate', 'def_sack_rate', 'st_epa', 'turnovers_lost', 'pen_yards', 'off_rz_epa']
@@ -131,39 +111,40 @@ if __name__ == "__main__":
     qb_db = qb_data[qb_data['play_id'] > 15].copy()
     qb_stability = qb_db.groupby(['season', 'posteam'])['epa'].std().reset_index().rename(columns={'epa': 'qb_volatility', 'posteam': 'team'}).fillna(0)
     stats = stats.merge(qb_stability, on=['season', 'team'], how='left')
-
-    print("🧠 Building Master DB...")
     full_games_df = engineer_features(schedule, stats, qb_db)
 
-    print(f"⚡ Training Model on Data PRIOR to {CURRENT_SEASON}...")
-    train_data = full_games_df[full_games_df['season'] < CURRENT_SEASON].dropna(subset=['result'])
+    # --- INTELLIGENT TRAINING CHECK ---
+    model = None
+    if os.path.exists(MODEL_PATH):
+        print("✅ Found existing model (Decrypted). SKIPPING training.")
+        model = xgb.XGBRegressor()
+        model.load_model(MODEL_PATH)
+    else:
+        print("⚡ No model found. Training fresh model...")
+        train_data = full_games_df[full_games_df['season'] < CURRENT_SEASON].dropna(subset=['result'])
+        X_cols = [
+            'qb_diff', 'edsr_diff', 'ypp_diff', 'pythag_diff', 'rest_diff',
+            'sack_mismatch_home', 'sack_mismatch_away',
+            'st_diff', 'turnover_diff', 'rz_diff', 'penalty_diff',
+            'home_field_strength', 'roof',
+            'home_qb_volatility', 'away_qb_volatility'
+        ]
+        y_train = train_data['result'].clip(-21, 21)
+        mono_constraints = (1, 1, 1, 1, 1, -1, 1, 1, -1, 1, -1, 1, 0, -1, 1)
+        model = xgb.XGBRegressor(n_estimators=2000, learning_rate=0.01, max_depth=3, min_child_weight=20, 
+                                 reg_alpha=0.5, subsample=0.5, colsample_bytree=0.5, 
+                                 monotone_constraints=mono_constraints, n_jobs=-1, objective='reg:squarederror')
+        model.fit(train_data[X_cols], y_train)
+        model.save_model(MODEL_PATH)
 
-    X_cols = [
-        'qb_diff', 'edsr_diff', 'ypp_diff', 'pythag_diff', 'rest_diff',
-        'sack_mismatch_home', 'sack_mismatch_away',
-        'st_diff', 'turnover_diff', 'rz_diff', 'penalty_diff',
-        'home_field_strength', 'roof',
-        'home_qb_volatility', 'away_qb_volatility'
-    ]
-    y_train = train_data['result'].clip(-21, 21)
-    mono_constraints = (1, 1, 1, 1, 1, -1, 1, 1, -1, 1, -1, 1, 0, -1, 1)
-
-    model = xgb.XGBRegressor(n_estimators=2000, learning_rate=0.01, max_depth=3, min_child_weight=20, 
-                             reg_alpha=0.5, subsample=0.5, colsample_bytree=0.5, 
-                             monotone_constraints=mono_constraints, n_jobs=-1, objective='reg:squarederror')
-    model.fit(train_data[X_cols], y_train)
-    model.save_model(MODEL_PATH)
-    print("💾 Honest Model Saved.")
-
-    print(f"📦 Saving to {CACHE_PATH}...")
+    print(f"📦 Updating Cache: {CACHE_PATH}...")
     db = {
         'model': model,
         'games_df': full_games_df, 
         'current_season': CURRENT_SEASON,
         'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M UTC")
     }
-    os.makedirs("data", exist_ok=True)
     with open(CACHE_PATH, 'wb') as f:
         pickle.dump(db, f)
 
-    print("✅ DONE. Run 'python main.py' to generate dashboard.")
+    print("✅ Stats Update Complete.")

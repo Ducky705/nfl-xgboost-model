@@ -2,11 +2,9 @@ name: NFL Bot Auto-Update
 
 on:
   schedule:
-    # Run heavy data update (training) only on Tuesdays at 8:00 AM UTC
-    - cron: '0 8 * * 2'
-    # Run dashboard update (odds & grading) Daily at 9:00 AM UTC
+    # Run Daily at 9:00 AM UTC
     - cron: '0 9 * * *'
-  workflow_dispatch:      # Allows manual "Click to Run" button
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -28,19 +26,30 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    - name: Run Heavy Update (Always run to generate model ephemerally)
+    - name: Decrypt Model
+      env:
+        # We pull the key from the GitHub Vault
+        MODEL_KEY: ${{ secrets.MODEL_KEY }}
+      run: |
+        python -c "from cryptography.fernet import Fernet; import os; open('nfl_bettor.json', 'wb').write(Fernet(os.environ['MODEL_KEY'].encode()).decrypt(open('nfl_bettor.locked', 'rb').read()))"
+
+    - name: Update Stats (Fast Mode)
+      # Now update_db.py simply downloads yesterday's scores to update history
+      # It does NOT retrain the model because nfl_bettor.json already exists!
       run: python update_db.py
 
-    - name: Run Dashboard Generation
+    - name: Generate Predictions
       run: python main.py
 
-    - name: Run Graph Generation
+    - name: Update Charts
       run: python generate_graphs.py
 
-    - name: Commit and Push Changes
+    - name: Save Website Changes
       run: |
         git config --global user.name "NFL-Bot"
         git config --global user.email "bot@nfl.com"
+        # We commit the history (data) and website (docs)
+        # We NEVER commit the unlocked json file
         git add data/ docs/
-        git commit -m "🏈 Daily Bot Update" || echo "No changes to commit"
+        git commit -m "daily_update" || echo "No changes"
         git push

@@ -8,3 +8,4 @@ tabulate
 scipy
 matplotlib
 seaborn
+cryptography
