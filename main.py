@@ -107,11 +107,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'ticker': 'ticker 30s linear infinite',
+                        'enter': 'slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                     },
                     keyframes: {
                         ticker: {
                             '0%': { transform: 'translateX(0)' },
                             '100%': { transform: 'translateX(-100%)' },
+                        },
+                        slideUpFade: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
                         }
                     }
                 }
@@ -148,10 +153,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         .signal-row {
             cursor: pointer;
+            will-change: transform, opacity;
         }
         .signal-row:hover {
-            transform: translateX(4px);
-            box-shadow: 0 0 20px rgba(204, 255, 0, 0.15);
+            transform: scale(1.01) translateX(4px);
+            box-shadow: 0 0 30px rgba(204, 255, 0, 0.1);
+            z-index: 10;
         }
     </style>
 </head>
@@ -170,7 +177,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="max-w-7xl mx-auto pt-16 pb-20 px-4 sm:px-6">
 
         <!-- 2. HEADER SECTION -->
-        <header class="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-border-dim pb-6">
+        <header class="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-border-dim pb-6 opacity-0 animate-enter" style="animation-delay: 100ms;">
             <div>
                 <div class="flex items-center gap-2 mb-2">
                     <div class="w-3 h-3 bg-acid-lime rounded-full animate-pulse-slow"></div>
@@ -188,63 +195,63 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <!-- 3. THE BENTO GRID DASHBOARD -->
         <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-16">
             <!-- Metric 1: ROI -->
-            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-colors duration-300 group">
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-all duration-500 group opacity-0 animate-enter" style="animation-delay: 200ms;">
                 <div class="flex justify-between items-start">
                     <span class="font-mono text-xs text-zinc-500 uppercase">Return on Investment</span>
-                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                 </div>
                 <div class="text-3xl font-bold text-white group-hover:text-acid-lime transition-colors">{{ roi }}%</div>
             </div>
 
             <!-- Metric 2: Win Rate -->
-            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-colors duration-300 group">
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-all duration-500 group opacity-0 animate-enter" style="animation-delay: 300ms;">
                 <div class="flex justify-between items-start">
                     <span class="font-mono text-xs text-zinc-500 uppercase">Win Rate</span>
-                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 </div>
                 <div class="flex items-end gap-3">
                     <div class="text-3xl font-bold text-white group-hover:text-acid-lime transition-colors">{{ win_pct }}%</div>
                     <div class="h-1 flex-1 bg-zinc-800 mb-2 rounded-full overflow-hidden">
-                        <div class="h-full bg-white group-hover:bg-acid-lime transition-colors" style="width: {{ win_pct }}%"></div>
+                        <div class="h-full bg-white group-hover:bg-acid-lime transition-colors duration-500" style="width: {{ win_pct }}%"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Metric 3: Record -->
-            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-colors duration-300 group">
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-all duration-500 group opacity-0 animate-enter" style="animation-delay: 400ms;">
                 <div class="flex justify-between items-start">
                     <span class="font-mono text-xs text-zinc-500 uppercase">W - L - T</span>
-                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <div class="text-3xl font-mono text-zinc-300 group-hover:text-acid-lime transition-colors">{{ record | replace('-', '<span class="text-zinc-600 mx-1">/</span>') | safe }}</div>
             </div>
 
             <!-- Metric 4: System Confidence -->
-            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 relative overflow-hidden hover:border-acid-lime transition-colors duration-300 group">
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 relative overflow-hidden hover:border-acid-lime transition-all duration-500 group opacity-0 animate-enter" style="animation-delay: 500ms;">
                 <div class="flex justify-between items-start z-10 relative">
                     <span class="font-mono text-xs text-zinc-500 uppercase">System Confidence <span class="text-zinc-600">({{ confidence_detail }})</span></span>
-                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
                 <div class="text-xl font-bold {{ confidence_color }} group-hover:text-acid-lime z-10 relative transition-colors">{{ confidence_level }}</div>
                 <!-- Visual Decoration: Wave -->
-                <svg class="absolute bottom-0 left-0 w-full h-20 text-zinc-900 z-0" fill="currentColor" viewBox="0 0 1440 320" preserveAspectRatio="none"><path fill-opacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,250.7C960,235,1056,181,1152,165.3C1248,149,1344,171,1392,181.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>
+                <svg class="absolute bottom-0 left-0 w-full h-20 text-zinc-900 z-0 group-hover:text-zinc-800 transition-colors duration-500" fill="currentColor" viewBox="0 0 1440 320" preserveAspectRatio="none"><path fill-opacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,250.7C960,235,1056,181,1152,165.3C1248,149,1344,171,1392,181.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>
             </div>
         </section>
 
         <!-- 4. THE TRADING DESK (Picks) -->
         <main class="mb-20">
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center justify-between mb-6 opacity-0 animate-enter" style="animation-delay: 600ms;">
                 <h2 class="font-sans text-2xl font-bold text-white tracking-tight">ACTIVE SIGNALS</h2>
                 <div class="flex gap-2" id="filter-buttons">
-                    <button data-filter="all" class="filter-btn active px-2 py-1 border border-acid-lime text-acid-lime font-mono text-[10px] uppercase cursor-pointer hover:bg-acid-lime hover:text-black transition-colors">All</button>
-                    <button data-filter="strong" class="filter-btn px-2 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-colors">Strong Buy</button>
-                    <button data-filter="solid" class="filter-btn px-2 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-colors">Solid</button>
-                    <button data-filter="lean" class="filter-btn px-2 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-colors">Lean</button>
+                    <button data-filter="all" class="filter-btn active px-3 py-1 border border-acid-lime text-acid-lime font-mono text-[10px] uppercase cursor-pointer hover:bg-acid-lime hover:text-black transition-all duration-300">All</button>
+                    <button data-filter="strong" class="filter-btn px-3 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-all duration-300">Strong Buy</button>
+                    <button data-filter="solid" class="filter-btn px-3 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-all duration-300">Solid</button>
+                    <button data-filter="lean" class="filter-btn px-3 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-all duration-300">Lean</button>
                 </div>
             </div>
 
             <!-- Table Header (Styled as Grid) -->
-            <div class="hidden md:grid grid-cols-12 gap-4 text-xs font-mono text-zinc-500 uppercase tracking-wider mb-4 px-6">
+            <div class="hidden md:grid grid-cols-12 gap-4 text-xs font-mono text-zinc-500 uppercase tracking-wider mb-4 px-6 opacity-0 animate-enter" style="animation-delay: 700ms;">
                 <div class="col-span-3">Instrument (Matchup)</div>
                 <div class="col-span-2 text-right">Market Line</div>
                 <div class="col-span-2 text-right">Model Val</div>
@@ -277,7 +284,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 {% set edgePercent = ((game.Edge / 12) * 100)|round|int %}
                 {% if edgePercent > 100 %}{% set edgePercent = 100 %}{% endif %}
 
-                <div data-confidence="{{ confidence }}" class="signal-row grid grid-cols-1 md:grid-cols-12 gap-4 p-4 md:p-6 {{ borderClass }} items-center {{ rowOpacity }} transition-all duration-300">
+                <!-- Added delay index for staggering -->
+                <div data-confidence="{{ confidence }}" 
+                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-4 p-4 md:p-6 {{ borderClass }} items-center transition-all duration-300 opacity-0 animate-enter"
+                     style="animation-delay: {{ 800 + (loop.index * 100) }}ms">
                     
                     <!-- Matchup -->
                     <div class="col-span-3">
@@ -320,12 +330,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
             
             {% if active_bets|length == 0 %}
-            <div class="p-8 text-center text-zinc-500 border border-border-dim bg-panel font-mono text-sm">NO ACTIVE SIGNALS DETECTED. SYSTEM STANDBY.</div>
+            <div class="p-8 text-center text-zinc-500 border border-border-dim bg-panel font-mono text-sm opacity-0 animate-enter" style="animation-delay: 800ms;">NO ACTIVE SIGNALS DETECTED. SYSTEM STANDBY.</div>
             {% endif %}
         </main>
 
         <!-- 5. HISTORICAL LEDGER -->
-        <section class="border-t border-border-dim pt-12">
+        <section class="border-t border-border-dim pt-12 opacity-0 animate-enter" style="animation-delay: 1000ms;">
             <h2 class="font-sans text-xl font-bold text-zinc-400 mb-6 tracking-tight">GRADED EXECUTION LOG</h2>
             
             <div class="overflow-x-auto">
@@ -363,14 +373,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </section>
 
         <!-- FOOTER -->
-        <footer class="mt-20 border-t border-border-dim pt-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center text-zinc-600 text-xs font-mono">
+        <footer class="mt-20 border-t border-border-dim pt-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center text-zinc-600 text-xs font-mono opacity-0 animate-enter" style="animation-delay: 1200ms;">
             <p>PROTOCOL 705 © 2025. DESIGNED BY THE VOID.</p>
             <p class="mt-2 md:mt-0">PAST PERFORMANCE IS NOT INDICATIVE OF FUTURE ALPHA.</p>
         </footer>
     </div>
 
     <script>
-        // Filter functionality
+        // Filter functionality with Entrance Animations
         document.addEventListener('DOMContentLoaded', function() {
             const filterButtons = document.querySelectorAll('.filter-btn');
             const signalRows = document.querySelectorAll('.signal-row');
@@ -387,15 +397,49 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     this.classList.add('active', 'border-acid-lime', 'text-acid-lime');
                     this.classList.remove('border-zinc-700', 'text-zinc-500');
 
-                    // Filter rows
+                    // Filter Logic:
+                    // 1. Fade out all rows
+                    // 2. Hide non-matching rows
+                    // 3. Fade in matching rows with stagger
+
+                    let visibleIndex = 0;
+
                     signalRows.forEach(row => {
+                        // Reset animation
+                        row.style.animation = 'none';
+                        row.offsetHeight; // Trigger reflow
+                        row.style.animation = null; // Re-enable CSS animation
+                        
                         const confidence = row.dataset.confidence;
-                        if (filter === 'all' || confidence === filter) {
-                            row.style.display = '';
+                        const isMatch = (filter === 'all' || confidence === filter);
+
+                        if (isMatch) {
+                            row.style.display = 'grid';
+                            // Add custom animation class for re-entry
+                            row.classList.remove('opacity-0', 'animate-enter');
+                            row.style.opacity = '0';
+                            row.style.transform = 'translateY(10px)';
+                            
+                            // Use timeout to stagger the re-appearance
+                            setTimeout(() => {
+                                row.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+                                row.style.opacity = '1';
+                                row.style.transform = 'translateY(0)';
+                            }, visibleIndex * 50); // Fast stagger
+
+                            visibleIndex++;
                         } else {
                             row.style.display = 'none';
                         }
                     });
+                    
+                    // Re-add hover capabilities after animation
+                    setTimeout(() => {
+                         signalRows.forEach(r => {
+                             r.style.transition = ''; // clear inline transition to default back to CSS
+                             r.style.transform = '';
+                         })
+                    }, visibleIndex * 50 + 400);
                 });
             });
         });
