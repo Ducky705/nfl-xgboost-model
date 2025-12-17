@@ -3,130 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFL AI Handicapper</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>PROTOCOL 705 // ALGORITHMIC MARKETS</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;800&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'void': '#050505',
+                        'panel': '#0A0A0A',
+                        'border-dim': '#1F1F1F',
+                        'acid-lime': '#CCFF00', 
+                        'warning-orange': '#FF4D00', 
+                        'ghost': '#444444'
+                    },
+                    fontFamily: {
+                        'sans': ['"Space Grotesk"', 'sans-serif'],
+                        'mono': ['"JetBrains Mono"', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ticker': 'ticker 30s linear infinite',
+                    },
+                    keyframes: {
+                        ticker: {
+                            '0%': { transform: 'translateX(0)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card { background-color: #1e293b; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .win { color: #4ade80; }
-        .loss { color: #f87171; }
-        .push { color: #94a3b8; }
-        .table-row:nth-child(even) { background-color: #334155; }
-        .strong-bet { border-left: 4px solid #ef4444; background-color: #2c364c; }
+        body {
+            background-color: #050505;
+            color: #E2E2E2;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .noise {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0A0A0A; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+
+        .glow-text { text-shadow: 0 0 10px rgba(204, 255, 0, 0.3); }
+        
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, #1a1a1a 1px, transparent 1px),
+                              linear-gradient(to bottom, #1a1a1a 1px, transparent 1px);
+        }
+
+        .signal-row {
+            cursor: pointer;
+        }
+        .signal-row:hover {
+            transform: translateX(4px);
+            box-shadow: 0 0 20px rgba(204, 255, 0, 0.15);
+        }
     </style>
 </head>
-<body class="p-6 max-w-7xl mx-auto">
-    
-    <div class="mb-8 text-center">
-        <h1 class="text-4xl font-bold text-blue-400 mb-2">🏈 NFL AI Handicapper</h1>
-        <p class="text-gray-400">Automated predictions using XGBoost & Walk-Forward Validation</p>
-        <p class="text-xs text-gray-500 mt-2">Last Updated: {{ last_updated }}</p>
-    </div>
+<body class="min-h-screen relative overflow-x-hidden">
+    <div class="noise"></div>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div class="card text-center">
-            <h3 class="text-gray-400 text-sm">Total ROI</h3>
-            <p class="text-3xl font-bold {{ 'win' if roi > 0 else 'loss' }}">{{ roi }}%</p>
-        </div>
-        <div class="card text-center">
-            <h3 class="text-gray-400 text-sm">Units Won</h3>
-            <p class="text-3xl font-bold {{ 'win' if units > 0 else 'loss' }}">{{ units }}u</p>
-        </div>
-        <div class="card text-center">
-            <h3 class="text-gray-400 text-sm">Record</h3>
-            <p class="text-3xl font-bold">{{ record }}</p>
-        </div>
-        <div class="card text-center">
-            <h3 class="text-gray-400 text-sm">Win Rate</h3>
-            <p class="text-3xl font-bold">{{ win_pct }}%</p>
+    <!-- 1. THE TICKER TAPE -->
+    <div class="fixed top-0 w-full bg-acid-lime text-black font-mono text-xs font-bold py-1 z-40 overflow-hidden whitespace-nowrap border-b border-acid-lime">
+        <div class="inline-block animate-ticker">
+            PROTOCOL 705 ONLINE // LAST UPDATE: {{ last_updated }} // ROI: {{ roi }}% // RECORD: {{ record }} // ALPHA GENERATED: {{ units }}u // SYSTEM LOAD: NOMINAL // MARKET VOLATILITY: DETECTED // 
+            PROTOCOL 705 ONLINE // LAST UPDATE: {{ last_updated }} // ROI: {{ roi }}% // RECORD: {{ record }} // ALPHA GENERATED: {{ units }}u // SYSTEM LOAD: NOMINAL // MARKET VOLATILITY: DETECTED // 
         </div>
     </div>
 
-    <h2 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">📋 This Week's Card</h2>
-    <div class="overflow-x-auto rounded-lg shadow-lg mb-12">
-        <table class="w-full text-left text-sm text-gray-300">
-            <thead class="bg-gray-800 text-xs uppercase font-medium">
-                <tr>
-                    <th class="px-4 py-3">Matchup</th>
-                    <th class="px-4 py-3">Spread</th>
-                    <th class="px-4 py-3">Model Line</th>
-                    <th class="px-4 py-3">Edge</th>
-                    <th class="px-4 py-3">Recommendation</th>
-                    <th class="px-4 py-3">Confidence</th>
-                </tr>
-            </thead>
-            <tbody class="bg-gray-900">
-                {% for bet in active_bets %}
-                <tr class="table-row border-b border-gray-800 {{ 'strong-bet' if 'STRONG' in bet.Conf else '' }}">
-                    <td class="px-4 py-4 font-medium">{{ bet.Matchup }}</td>
-                    <td class="px-4 py-4">{{ bet.Vegas }}</td>
-                    <td class="px-4 py-4">{{ bet.Fair_Line }}</td>
-                    <td class="px-4 py-4 font-bold win">+{{ bet.Edge }}</td>
-                    <td class="px-4 py-4 font-bold text-white">{{ bet.Action }}</td>
-                    <td class="px-4 py-4">
-                        {% if 'None' not in bet.Conf %}
-                        <span class="px-2 py-1 rounded text-xs font-bold 
-                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.Conf else ('bg-green-900 text-green-200' if 'SOLID' in bet.Conf else 'bg-yellow-900 text-yellow-200') }}">
-                            {{ bet.Conf }}
-                        </span>
-                        {% else %}
-                        <span class="px-2 py-1 rounded text-xs font-bold bg-gray-700 text-gray-400">None</span>
-                        {% endif %}
-                    </td>
-                </tr>
+    <!-- MAIN CONTAINER -->
+    <div class="max-w-7xl mx-auto pt-16 pb-20 px-4 sm:px-6">
+
+        <!-- 2. HEADER SECTION -->
+        <header class="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-border-dim pb-6">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-3 h-3 bg-acid-lime rounded-full animate-pulse-slow"></div>
+                    <span class="font-mono text-xs text-acid-lime tracking-widest">LIVE SIGNAL</span>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-bold tracking-tighter text-white">PROTOCOL <span class="text-ghost">705</span></h1>
+                <p class="font-mono text-zinc-500 mt-2 text-sm uppercase tracking-wide">XGBoost Algorithmic Infrastructure</p>
+            </div>
+            <div class="text-right mt-6 md:mt-0">
+                <div class="font-mono text-4xl font-bold text-acid-lime glow-text">{{ "+" if units > 0 else "" }}{{ units }}u</div>
+                <div class="font-mono text-xs text-zinc-500 uppercase tracking-widest">Net Alpha Generated</div>
+            </div>
+        </header>
+
+        <!-- 3. THE BENTO GRID DASHBOARD -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-16">
+            <!-- Metric 1: ROI -->
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-colors duration-300 group">
+                <div class="flex justify-between items-start">
+                    <span class="font-mono text-xs text-zinc-500 uppercase">Return on Investment</span>
+                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                </div>
+                <div class="text-3xl font-bold text-white group-hover:text-acid-lime transition-colors">{{ roi }}%</div>
+            </div>
+
+            <!-- Metric 2: Win Rate -->
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-colors duration-300 group">
+                <div class="flex justify-between items-start">
+                    <span class="font-mono text-xs text-zinc-500 uppercase">Win Rate</span>
+                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                </div>
+                <div class="flex items-end gap-3">
+                    <div class="text-3xl font-bold text-white group-hover:text-acid-lime transition-colors">{{ win_pct }}%</div>
+                    <div class="h-1 flex-1 bg-zinc-800 mb-2 rounded-full overflow-hidden">
+                        <div class="h-full bg-white group-hover:bg-acid-lime transition-colors" style="width: {{ win_pct }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 3: Record -->
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-colors duration-300 group">
+                <div class="flex justify-between items-start">
+                    <span class="font-mono text-xs text-zinc-500 uppercase">W - L - T</span>
+                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div class="text-3xl font-mono text-zinc-300 group-hover:text-acid-lime transition-colors">{{ record | replace('-', '<span class="text-zinc-600 mx-1">/</span>') | safe }}</div>
+            </div>
+
+            <!-- Metric 4: System Confidence -->
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 relative overflow-hidden hover:border-acid-lime transition-colors duration-300 group">
+                <div class="flex justify-between items-start z-10 relative">
+                    <span class="font-mono text-xs text-zinc-500 uppercase">System Confidence <span class="text-zinc-600">({{ confidence_detail }})</span></span>
+                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <div class="text-xl font-bold {{ confidence_color }} group-hover:text-acid-lime z-10 relative transition-colors">{{ confidence_level }}</div>
+                <!-- Visual Decoration: Wave -->
+                <svg class="absolute bottom-0 left-0 w-full h-20 text-zinc-900 z-0" fill="currentColor" viewBox="0 0 1440 320" preserveAspectRatio="none"><path fill-opacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,250.7C960,235,1056,181,1152,165.3C1248,149,1344,171,1392,181.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>
+            </div>
+        </section>
+
+        <!-- 4. THE TRADING DESK (Picks) -->
+        <main class="mb-20">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="font-sans text-2xl font-bold text-white tracking-tight">ACTIVE SIGNALS</h2>
+                <div class="flex gap-2" id="filter-buttons">
+                    <button data-filter="all" class="filter-btn active px-2 py-1 border border-acid-lime text-acid-lime font-mono text-[10px] uppercase cursor-pointer hover:bg-acid-lime hover:text-black transition-colors">All</button>
+                    <button data-filter="strong" class="filter-btn px-2 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-colors">Strong Buy</button>
+                    <button data-filter="solid" class="filter-btn px-2 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-colors">Solid</button>
+                    <button data-filter="lean" class="filter-btn px-2 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-colors">Lean</button>
+                </div>
+            </div>
+
+            <!-- Table Header (Styled as Grid) -->
+            <div class="hidden md:grid grid-cols-12 gap-4 text-xs font-mono text-zinc-500 uppercase tracking-wider mb-4 px-6">
+                <div class="col-span-3">Instrument (Matchup)</div>
+                <div class="col-span-2 text-right">Market Line</div>
+                <div class="col-span-2 text-right">Model Val</div>
+                <div class="col-span-3">Alpha Gap (Edge)</div>
+                <div class="col-span-2 text-right">Execution</div>
+            </div>
+
+            <!-- Dynamic Content Container -->
+            <div id="cards-container" class="space-y-1">
+                {% for game in active_bets %}
+                {% set borderClass = "border-border-dim" %}
+                {% set barColor = "bg-zinc-600" %}
+                {% set btnClass = "bg-zinc-800 text-zinc-400" %}
+                {% set rowOpacity = "opacity-80 hover:opacity-100" %}
+                {% set confidence = "lean" %}
+
+                {% if 'STRONG' in game.clean_conf %}
+                    {% set borderClass = "border-l-4 border-l-acid-lime border-y border-r border-border-dim bg-[#0F110A]" %}
+                    {% set barColor = "bg-acid-lime" %}
+                    {% set btnClass = "bg-acid-lime text-black hover:bg-white transition-colors" %}
+                    {% set rowOpacity = "opacity-100" %}
+                    {% set confidence = "strong" %}
+                {% elif 'SOLID' in game.clean_conf %}
+                    {% set borderClass = "border-l-4 border-l-emerald-700 border-y border-r border-border-dim" %}
+                    {% set barColor = "bg-emerald-500" %}
+                    {% set btnClass = "bg-emerald-900 text-emerald-100 border border-emerald-700" %}
+                    {% set confidence = "solid" %}
+                {% endif %}
+                
+                {% set edgePercent = ((game.Edge / 12) * 100)|round|int %}
+                {% if edgePercent > 100 %}{% set edgePercent = 100 %}{% endif %}
+
+                <div data-confidence="{{ confidence }}" class="signal-row grid grid-cols-1 md:grid-cols-12 gap-4 p-4 md:p-6 {{ borderClass }} items-center {{ rowOpacity }} transition-all duration-300">
+                    
+                    <!-- Matchup -->
+                    <div class="col-span-3">
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-xl md:text-2xl font-bold text-white tracking-tight">{{ game.away }}</span>
+                            <span class="text-zinc-600 text-sm">@</span>
+                            <span class="text-xl md:text-2xl font-bold text-white tracking-tight">{{ game.home }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Market Line -->
+                    <div class="col-span-2 md:text-right font-mono text-zinc-400">
+                        {{ game.Vegas }}
+                    </div>
+
+                    <!-- Model Line -->
+                    <div class="col-span-2 md:text-right font-mono text-zinc-300">
+                        {{ game.Fair_Line }}
+                    </div>
+
+                    <!-- Edge Visualization -->
+                    <div class="col-span-3 flex flex-col justify-center h-full">
+                        <div class="flex justify-between text-xs font-mono mb-1">
+                            <span class="text-zinc-500">EDGE</span>
+                            <span class="{{ 'text-acid-lime' if 'STRONG' in game.clean_conf else 'text-zinc-300' }} font-bold">+{{ game.Edge }}</span>
+                        </div>
+                        <div class="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                            <div class="h-full {{ barColor }} shadow-[0_0_10px_rgba(204,255,0,0.5)]" style="width: {{ edgePercent }}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="col-span-2 md:text-right mt-2 md:mt-0">
+                        <button class="w-full md:w-auto px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider {{ btnClass }}">
+                            BET {{ game.pick }} <span class="opacity-70 ml-1">({{ game.units }}u)</span>
+                        </button>
+                    </div>
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
-        {% if active_bets|length == 0 %}
-        <div class="p-8 text-center text-gray-500 bg-gray-900">No active value bets found for the upcoming week yet.</div>
-        {% endif %}
+            </div>
+            
+            {% if active_bets|length == 0 %}
+            <div class="p-8 text-center text-zinc-500 border border-border-dim bg-panel font-mono text-sm">NO ACTIVE SIGNALS DETECTED. SYSTEM STANDBY.</div>
+            {% endif %}
+        </main>
+
+        <!-- 5. HISTORICAL LEDGER -->
+        <section class="border-t border-border-dim pt-12">
+            <h2 class="font-sans text-xl font-bold text-zinc-400 mb-6 tracking-tight">GRADED EXECUTION LOG</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full font-mono text-sm text-left">
+                    <thead class="text-xs text-zinc-600 uppercase border-b border-border-dim">
+                        <tr>
+                            <th class="py-3 pl-4">Week</th>
+                            <th class="py-3">Matchup</th>
+                            <th class="py-3 text-right">Spread</th>
+                            <th class="py-3 text-right">Edge</th>
+                            <th class="py-3 pl-8">Position</th>
+                            <th class="py-3 text-right">Result</th>
+                            <th class="py-3 text-right pr-4">P&L</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border-dim text-zinc-400" id="ledger-body">
+                        {% for row in history %}
+                        {% set isWin = row.result == 'WIN' %}
+                        {% set profitClass = "text-acid-lime" if isWin else ("text-warning-orange" if row.result == 'LOSS' else "text-zinc-500") %}
+                        <tr class="hover:bg-zinc-900 transition-colors">
+                            <td class="py-3 pl-4 border-b border-zinc-900">W{{ row.week }}</td>
+                            <td class="py-3 border-b border-zinc-900 font-bold text-zinc-300">{{ row.matchup }}</td>
+                            <td class="py-3 text-right border-b border-zinc-900">{{ row.line_display }}</td>
+                            <td class="py-3 text-right border-b border-zinc-900 text-zinc-500">{{ row.edge }}</td>
+                            <td class="py-3 pl-8 border-b border-zinc-900"><span class="bg-zinc-800 text-white px-2 py-0.5 text-xs font-bold">{{ row.pick_team }}</span></td>
+                            <td class="py-3 text-right border-b border-zinc-900">
+                                <span class="{{ profitClass }} font-bold">{{ row.result }}</span>
+                            </td>
+                            <td class="py-3 text-right pr-4 border-b border-zinc-900 {{ profitClass }}">{{ "+" if row.profit > 0 else "" }}{{ row.profit }}u</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="mt-20 border-t border-border-dim pt-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center text-zinc-600 text-xs font-mono">
+            <p>PROTOCOL 705 © 2025. DESIGNED BY THE VOID.</p>
+            <p class="mt-2 md:mt-0">PAST PERFORMANCE IS NOT INDICATIVE OF FUTURE ALPHA.</p>
+        </footer>
     </div>
 
-    <h2 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">📜 Recent Graded Bets</h2>
-    <div class="overflow-x-auto rounded-lg shadow-lg">
-        <table class="w-full text-left text-sm text-gray-400">
-            <thead class="bg-gray-800 text-xs uppercase">
-                <tr>
-                    <th class="px-4 py-3">Week</th>
-                    <th class="px-4 py-3">Matchup</th>
-                    <th class="px-4 py-3">Spread</th>
-                    <th class="px-4 py-3">Model</th>
-                    <th class="px-4 py-3">Edge</th>
-                    <th class="px-4 py-3">Pick</th>
-                    <th class="px-4 py-3">Conf</th>
-                    <th class="px-4 py-3">Result</th>
-                    <th class="px-4 py-3">Profit</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for bet in history %}
-                <tr class="table-row border-b border-gray-800">
-                    <td class="px-4 py-3">W{{ bet.week }}</td>
-                    <td class="px-4 py-3">{{ bet.matchup }}</td>
-                    <td class="px-4 py-3">{{ bet.line_display }}</td>
-                    <td class="px-4 py-3">{{ bet.fair_display }}</td>
-                    <td class="px-4 py-3 win">+{{ bet.edge }}</td>
-                    <td class="px-4 py-3 font-bold">{{ bet.pick }}</td>
-                    <td class="px-4 py-3">
-                        {% if 'None' not in bet.conf %}
-                        <span class="px-1 py-0.5 rounded text-xs font-bold 
-                        {{ 'bg-red-900 text-red-200' if 'STRONG' in bet.conf else ('bg-green-900 text-green-200' if 'SOLID' in bet.conf else 'bg-yellow-900 text-yellow-200') }}">
-                            {{ bet.conf }}
-                        </span>
-                        {% else %}
-                        <span class="px-2 py-1 rounded text-xs font-bold bg-gray-700 text-gray-400">-</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="{{ 'win' if bet.result == 'WIN' else ('loss' if bet.result == 'LOSS' else 'push') }}">
-                            {{ bet.result }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 {{ 'win' if bet.profit > 0 else ('loss' if bet.profit < 0 else 'push') }}">{{ bet.profit }}u</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <script>
+        // Filter functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const signalRows = document.querySelectorAll('.signal-row');
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const filter = this.dataset.filter;
+
+                    // Update active button styles
+                    filterButtons.forEach(btn => {
+                        btn.classList.remove('active', 'border-acid-lime', 'text-acid-lime');
+                        btn.classList.add('border-zinc-700', 'text-zinc-500');
+                    });
+                    this.classList.add('active', 'border-acid-lime', 'text-acid-lime');
+                    this.classList.remove('border-zinc-700', 'text-zinc-500');
+
+                    // Filter rows
+                    signalRows.forEach(row => {
+                        const confidence = row.dataset.confidence;
+                        if (filter === 'all' || confidence === filter) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            });
+        });
+    </script>
 </body>
 </html>
