@@ -1,0 +1,7 @@
+name,rmse,wins,losses,win_rate,params
+Regularized,12.55412028811961,187,58,76.32653061224491,"{'learning_rate': 0.01, 'max_depth': 4, 'subsample': 0.7, 'colsample_bytree': 0.7, 'objective': 'reg:squarederror', 'reg_alpha': 1.0, 'reg_lambda': 2.0}"
+Baseline (v2.3),12.578257752231066,186,60,75.60975609756098,"{'learning_rate': 0.01, 'max_depth': 4, 'subsample': 0.7, 'colsample_bytree': 0.7, 'objective': 'reg:squarederror'}"
+LR=0.005,12.567407516367778,186,60,75.60975609756098,"{'learning_rate': 0.005, 'max_depth': 4, 'subsample': 0.7, 'colsample_bytree': 0.7, 'objective': 'reg:squarederror'}"
+LR+Reg Combo,12.559266532037984,184,60,75.40983606557377,"{'learning_rate': 0.005, 'max_depth': 4, 'subsample': 0.7, 'colsample_bytree': 0.7, 'objective': 'reg:squarederror', 'reg_alpha': 0.5, 'reg_lambda': 1.0}"
+Depth=3,12.602027681832881,187,62,75.1004016064257,"{'learning_rate': 0.01, 'max_depth': 3, 'subsample': 0.7, 'colsample_bytree': 0.7, 'objective': 'reg:squarederror'}"
+LR=0.02,12.588705940526234,189,63,75.0,"{'learning_rate': 0.02, 'max_depth': 4, 'subsample': 0.7, 'colsample_bytree': 0.7, 'objective': 'reg:squarederror'}"

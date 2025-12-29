@@ -1,0 +1,2678 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE QUARRY // PYRITE MODEL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;800&family=Space+Grotesk:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'void': '#050505',
+                        'panel': '#0A0A0A',
+                        'border-dim': '#1F1F1F',
+                        'pyrite-gold': '#FFC125',
+                        'pyrite-dim': '#B8860B',
+                        'ghost': '#444444'
+                    },
+                    fontFamily: {
+                        'sans': ['"Space Grotesk"', 'sans-serif'],
+                        'mono': ['"JetBrains Mono"', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ticker': 'ticker 20s linear infinite',
+                        'slide-up-fade': 'slide-up-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'glitch': 'glitch 1s linear infinite',
+                        'sheen': 'sheen 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        ticker: {
+                            '0%': { transform: 'translateX(0)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        },
+                        'slide-up-fade': {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        glitch: {
+                            '2%, 64%': { transform: 'translate(2px,0) skew(0deg)' },
+                            '4%, 60%': { transform: 'translate(-2px,0) skew(0deg)' },
+                            '62%': { transform: 'translate(0,0) skew(5deg)' },
+                        },
+                        sheen: {
+                            '0%, 100%': { backgroundPosition: '200% 0' },
+                            '50%': { backgroundPosition: '-200% 0' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #050505;
+            color: #E2E2E2;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        #embers-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0A0A0A;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #FFC125;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 15px rgba(255, 193, 37, 0.4);
+        }
+
+        .chart-container {
+            background: #0A0A0A;
+            border: 1px dashed #333;
+            border-radius: 0px;
+            padding: 1rem;
+            position: relative;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chart-container:hover {
+            border-color: #FFC125;
+            box-shadow: 0 0 20px rgba(255, 193, 37, 0.1);
+        }
+
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 10px;
+            height: 10px;
+            border-top: 2px solid #FFC125;
+            border-left: 2px solid #FFC125;
+        }
+
+        .chart-container::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            right: -1px;
+            width: 10px;
+            height: 10px;
+            border-bottom: 2px solid #FFC125;
+            border-right: 2px solid #FFC125;
+        }
+
+        .chart-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 0px;
+            filter: sepia(20%) contrast(110%);
+        }
+
+        .glitch-hover:hover {
+            animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+            color: #FFC125;
+            text-shadow: 2px 0 #ff0000, -2px 0 #0000ff;
+        }
+
+        /* Metallic Sheen on Text */
+        .metallic-text {
+            background: linear-gradient(90deg,
+                    #997b19 0%,
+                    #FFD700 25%,
+                    #FFF8DC 50%,
+                    #FFD700 75%,
+                    #997b19 100%);
+            background-size: 200% auto;
+            color: #000;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: sheen 4s linear infinite;
+        }
+
+        /* Custom Cursor - Pyrite (Gold Crosshair) */
+        body {
+            cursor: url('data:image/svg+xml;utf8,<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 4L16 11M16 28L16 21M4 16L11 16M28 16L21 16" stroke="%23FFC125" stroke-width="2" stroke-linecap="square"/><rect x="15.5" y="15.5" width="1" height="1" fill="%23FFC125" opacity="0.5"/></svg>') 16 16, auto;
+        }
+
+        a,
+        button,
+        [role="button"] {
+            cursor: url('data:image/svg+xml;utf8,<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 4L16 11M16 28L16 21M4 16L11 16M28 16L21 16" stroke="%23FFD700" stroke-width="2" stroke-linecap="square"/><circle cx="16" cy="16" r="2" fill="%23FFD700"/></svg>') 16 16, pointer;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen relative overflow-x-hidden selection:bg-pyrite-gold selection:text-black">
+    <canvas id="embers-canvas"></canvas>
+    <div class="noise"></div>
+
+    <div
+        class="fixed top-0 w-full bg-pyrite-gold text-black font-mono text-xs font-bold py-1 z-40 overflow-hidden whitespace-nowrap border-b border-pyrite-dim">
+        <div class="inline-block animate-ticker">
+            PYRITE V1 // FOOL'S GOLD PROTOCOL // HIGH VARIANCE DETECTED // VOLATILITY: EXTREME //
+            PYRITE V1 // FOOL'S GOLD PROTOCOL // HIGH VARIANCE DETECTED // VOLATILITY: EXTREME //
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto pt-16 pb-20 px-4 sm:px-6 relative z-10">
+        <header
+            class="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-dashed border-zinc-800 pb-6 opacity-0 animate-slide-up-fade"
+            style="animation-delay: 0ms;">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-3 h-3 bg-pyrite-gold rotate-45 animate-pulse-fast"></div>
+                    <span class="font-mono text-xs text-pyrite-gold tracking-widest">SYSTEM: UNSTABLE</span>
+                </div>
+                <!-- Metallic Glitch Header -->
+                <h1 class="text-6xl md:text-8xl font-bold tracking-tighter uppercase glitch-hover"
+                    style="font-family: 'Space Grotesk'; color: #FFF;">
+                    PYRITE
+                </h1>
+                <p
+                    class="font-mono text-pyrite-dim mt-2 text-sm uppercase tracking-wide border-l-2 border-pyrite-gold pl-3">
+                    V1 Legacy Architecture // Raw Output
+                </p>
+            </div>
+            <div class="text-right mt-6 md:mt-0">
+                <div class="font-mono text-5xl font-bold text-pyrite-gold glow-text" id="header-net">--</div>
+                <div class="font-mono text-xs text-zinc-500 uppercase tracking-widest">Net Alpha Generated</div>
+            </div>
+        </header>
+
+        <!-- PRIMARY VISUAL: CUMULATIVE PROFIT (Moved to Top) -->
+        <section class="mb-16">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-sans text-2xl font-bold text-white tracking-tight uppercase flex items-center gap-2">
+                    <span class="text-pyrite-gold">///</span> Performance Trajectory
+                </h2>
+                <div class="font-mono text-xs text-pyrite-gold border border-pyrite-gold px-2 py-1 rounded-sm">
+                    LIVE FEED
+                </div>
+            </div>
+
+            <div class="chart-container group hover:border-pyrite-gold/50 transition-all duration-300 opacity-0 animate-slide-up-fade"
+                style="animation-delay: 100ms;">
+                <img src="assets/pyrite_live_curve.png" alt="Live Profit Curve"
+                    class="group-hover:brightness-110 transition-all duration-300" />
+            </div>
+        </section>
+
+        <!-- STATS GRID (Skewed/Industrial Look) -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+            <!-- Left Column: Key Metrics -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- ROI -->
+                <div class="bg-zinc-900/50 border border-zinc-800 p-6 flex flex-col justify-between h-32 hover:border-pyrite-gold transition-all duration-300 group opacity-0 animate-slide-up-fade relative overflow-hidden"
+                    style="animation-delay: 200ms;">
+                    <div class="absolute inset-0 bg-pyrite-gold/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    </div>
+                    <span class="font-mono text-xs text-zinc-500 uppercase relative z-10">ROI</span>
+                    <div class="text-3xl font-bold text-pyrite-gold relative z-10" id="stats-roi">--%</div>
+                </div>
+                <!-- Win Rate -->
+                <div class="bg-zinc-900/50 border border-zinc-800 p-6 flex flex-col justify-between h-32 hover:border-pyrite-gold transition-all duration-300 group opacity-0 animate-slide-up-fade relative overflow-hidden"
+                    style="animation-delay: 250ms;">
+                    <div class="absolute inset-0 bg-pyrite-gold/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    </div>
+                    <span class="font-mono text-xs text-zinc-500 uppercase relative z-10">Win Rate</span>
+                    <div class="text-3xl font-bold text-white group-hover:text-pyrite-gold transition-colors relative z-10"
+                        id="stats-winrate">--%</div>
+                </div>
+                <!-- Record -->
+                <div class="col-span-2 bg-zinc-900/50 border border-zinc-800 p-6 flex flex-col justify-between h-24 hover:border-pyrite-gold transition-all duration-300 group opacity-0 animate-slide-up-fade relative overflow-hidden"
+                    style="animation-delay: 300ms;">
+                    <div class="absolute inset-0 bg-pyrite-gold/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    </div>
+                    <div class="flex justify-between items-center relative z-10">
+                        <span class="font-mono text-xs text-zinc-500 uppercase">Total Record</span>
+                        <div class="font-mono text-xl text-zinc-300" id="stats-record">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Status/Info -->
+            <div class="bg-zinc-900/50 border border-pyrite-dim/30 p-8 flex flex-col justify-center relative overflow-hidden group hover:border-pyrite-gold transition-all duration-300 opacity-0 animate-slide-up-fade"
+                style="animation-delay: 350ms;">
+                <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
+                    <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#FFC125" stroke-width="1">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+                <h3 class="font-mono text-pyrite-gold text-sm uppercase mb-2">Model Status</h3>
+                <div class="text-4xl font-bold text-white mb-4">ACTIVE // <span
+                        class="text-pyrite-dim glitch-hover cursor-default">VOLATILE</span>
+                </div>
+                <p class="font-mono text-xs text-zinc-500 leading-relaxed">
+                    Pyrite V1 accepts all positive EV signatures regardless of regime volatility.
+                    Expect significant drawdowns followed by rapid recovery.
+                </p>
+            </div>
+        </section>
+
+        <!-- ANALYTICS GRID -->
+        <section class="mb-16">
+            <h2
+                class="font-sans text-2xl font-bold text-white tracking-tight mb-6 uppercase border-b border-dashed border-zinc-800 pb-2">
+                <span class="text-pyrite-gold">///</span> Deep Dive
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Sport ROI -->
+                <div class="chart-container group hover:border-pyrite-gold transition-all duration-300 opacity-0 animate-slide-up-fade"
+                    style="animation-delay: 400ms;">
+                    <div
+                        class="absolute top-2 right-2 bg-black/80 px-2 py-1 font-mono text-xs text-pyrite-gold border border-pyrite-gold/30">
+                        ROI BY SPORT
+                    </div>
+                    <img src="assets/pyrite_sport.png" alt="Pyrite Sport ROI" />
+                </div>
+                <!-- Bet Sizing -->
+                <div class="chart-container group hover:border-pyrite-gold transition-all duration-300 opacity-0 animate-slide-up-fade"
+                    style="animation-delay: 500ms;">
+                    <div
+                        class="absolute top-2 right-2 bg-black/80 px-2 py-1 font-mono text-xs text-pyrite-gold border border-pyrite-gold/30">
+                        CONFIDENCE CALIBRATION
+                    </div>
+                    <img src="assets/pyrite_size.png" alt="Pyrite Bet Sizing" />
+                </div>
+            </div>
+        </section>
+
+        <!-- YESTERDAY'S LEDGER -->
+        <section class="border-t-2 border-dashed border-zinc-800 pt-12">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="font-sans text-xl font-bold text-zinc-400 tracking-tight uppercase">Yesterday's Action</h2>
+                <span class="font-mono text-xs text-pyrite-gold" id="y-date-label">--</span>
+            </div>
+
+            <!-- Summary Bar -->
+            <div class="flex flex-wrap gap-1 mb-8 opacity-0 animate-slide-up-fade" style="animation-delay: 600ms;">
+                <div
+                    class="flex-1 bg-zinc-900 border border-zinc-800 p-3 text-center group hover:bg-pyrite-gold/10 transition-colors">
+                    <span class="block text-xs font-mono text-zinc-600 uppercase">Record</span>
+                    <span class="font-bold text-white" id="y-record">--</span>
+                </div>
+                <div
+                    class="flex-1 bg-zinc-900 border border-zinc-800 p-3 text-center group hover:bg-pyrite-gold/10 transition-colors">
+                    <span class="block text-xs font-mono text-zinc-600 uppercase">Net</span>
+                    <span class="font-bold text-pyrite-gold" id="y-net">--</span>
+                </div>
+                <div
+                    class="flex-1 bg-zinc-900 border border-zinc-800 p-3 text-center group hover:bg-pyrite-gold/10 transition-colors">
+                    <span class="block text-xs font-mono text-zinc-600 uppercase">ROI</span>
+                    <span class="font-bold text-pyrite-gold" id="y-roi">--</span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto opacity-0 animate-slide-up-fade" style="animation-delay: 700ms;">
+                <table class="w-full font-mono text-sm text-left border-collapse">
+                    <thead class="text-xs text-zinc-600 uppercase bg-zinc-900/50">
+                        <tr>
+                            <th class="py-3 pl-4">Time</th>
+                            <th class="py-3">Selection</th>
+                            <th class="py-3 text-right">Odds</th>
+                            <th class="py-3 pl-8">Size</th>
+                            <th class="py-3 text-right">Res</th>
+                            <th class="py-3 text-right pr-4">P&L</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800 text-zinc-400" id="ledger-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <footer
+            class="mt-20 border-t border-zinc-900 pt-8 text-center flex justify-between items-center text-zinc-700 text-xs font-mono">
+            <p>PYRITE_V1.XGB // BUILD 2025.12.27</p>
+            <p>CAUTION: FINANCIAL HAZARD</p>
+        </footer>
+    </div>
+
+    <!-- Hidden bindings for script compatibility -->
+    <!-- The hydration script expects these to exist if we want them populated -->
+    <!-- Re-using existing structure where possible -->
+
+    <script>
+        // --- EMBER PARTICLES ---
+        const canvas = document.getElementById('embers-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        const particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        class Ember {
+            constructor(initial = false) {
+                this.reset(initial);
+            }
+
+            reset(initial = false) {
+                this.size = Math.random() * 2 + 1; // Slightly larger for better visibility
+                this.speedY = Math.random() * 0.8 + 0.3; // Slower, more gentle rise
+
+                // Spread out across the screen initially, otherwise start at bottom
+                if (initial) {
+                    this.y = Math.random() * height;
+                } else {
+                    this.y = height + Math.random() * 50;
+                }
+
+                this.x = Math.random() * width;
+                this.initialX = this.x; // Keep track of base X
+
+                this.hue = 35 + Math.random() * 15; // Range from deeper orange to yellow
+                this.maxOpacity = Math.random() * 0.4 + 0.1; // Lower max opacity for subtlety
+                this.opacity = this.maxOpacity;
+
+                this.swaySpeed = Math.random() * 0.02 + 0.005;
+                this.swayAmplitude = Math.random() * 20 + 10;
+                this.swayOffset = Math.random() * Math.PI * 2;
+
+                this.age = 0;
+            }
+
+            update() {
+                this.y -= this.speedY;
+                this.age += 1;
+
+                // Sine wave movement around the initial X position
+                // We add the initial sway offset so they don't all sway in sync
+                const sway = Math.sin((this.age * this.swaySpeed) + this.swayOffset) * this.size * 0.5;
+                this.x += sway * 0.1; // Gentle drift
+
+                // Fade out near the top
+                if (this.y < height * 0.2) {
+                    this.opacity = Math.max(0, this.opacity - 0.005);
+                }
+
+                // Reset if off screen or fully transparent
+                if (this.y < -10 || this.opacity <= 0) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 50%, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initEmbers() {
+            resize();
+            particles.length = 0; // Clear existing
+            // Create more particles for better density but subtler
+            const particleCount = width < 768 ? 40 : 80;
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Ember(true));
+            }
+            animate();
+        }
+
+        let animationFrameId;
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Optional: Draw a very faint trail? No, "funny background effect" was reported.
+            // Let's keep it clean.
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            resize();
+            // Optional: re-init on huge resize, or just letting them flow is fine
+        });
+
+        initEmbers();
+
+        // --- DATA HYDRATION (PRESERVED) ---
+        const DATA = {
+            "meta": {
+                        "last_update": "2025-12-28 13:10 UTC",
+                        "status": "LEGACY"
+            },
+            "stats": {
+                        "roi": 13.4,
+                        "net_units": 969.4,
+                        "record": "2988-2318-0",
+                        "win_rate": 56.3
+            },
+            "volume": {
+                        "v1_avg": 139.6,
+                        "v2_avg": 0,
+                        "v1_label": "High",
+                        "v2_label": "Medium"
+            },
+            "yesterday": {
+                        "record": "101-77-0",
+                        "win_pct": 56.7,
+                        "roi": 17.5,
+                        "net": 49.91,
+                        "date": "Dec 27, 2025"
+            },
+            "history": [
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -102,
+                                    "edge": 0.2083934232740119,
+                                    "units": 10.5,
+                                    "wager": 10.5,
+                                    "profit": 10.32,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Penn State +3",
+                                    "odds": -158,
+                                    "edge": 0.2368134796157364,
+                                    "units": 15.3,
+                                    "wager": 15.3,
+                                    "profit": 9.67,
+                                    "result": "WIN",
+                                    "match": "Penn State +3"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -185,
+                                    "edge": 0.17337044812085334,
+                                    "units": 12.4,
+                                    "wager": 12.4,
+                                    "profit": 6.68,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -110,
+                                    "edge": 0.1296460912341163,
+                                    "units": 6.8,
+                                    "wager": 6.8,
+                                    "profit": 6.19,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Baltimore Ravens +3.5",
+                                    "odds": 164,
+                                    "edge": 0.0934967362519466,
+                                    "units": 3.8,
+                                    "wager": 3.8,
+                                    "profit": 6.17,
+                                    "result": "WIN",
+                                    "match": "Baltimore Ravens +3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -110,
+                                    "edge": 0.11625972248259042,
+                                    "units": 6.1,
+                                    "wager": 6.1,
+                                    "profit": 5.55,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -110,
+                                    "edge": 0.07138034559431528,
+                                    "units": 3.7,
+                                    "wager": 3.7,
+                                    "profit": 3.41,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU ML",
+                                    "odds": -142,
+                                    "edge": 0.07608371283397197,
+                                    "units": 4.6,
+                                    "wager": 4.6,
+                                    "profit": 3.24,
+                                    "result": "WIN",
+                                    "match": "BYU ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Magic +4.5",
+                                    "odds": -110,
+                                    "edge": 0.06758609272184823,
+                                    "units": 3.5,
+                                    "wager": 3.5,
+                                    "profit": 3.23,
+                                    "result": "WIN",
+                                    "match": "Magic +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Magic +4.5",
+                                    "odds": -110,
+                                    "edge": 0.06683370329084848,
+                                    "units": 3.5,
+                                    "wager": 3.5,
+                                    "profit": 3.19,
+                                    "result": "WIN",
+                                    "match": "Magic +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Magic +4.5",
+                                    "odds": -110,
+                                    "edge": 0.06683370329084848,
+                                    "units": 3.5,
+                                    "wager": 3.5,
+                                    "profit": 3.19,
+                                    "result": "WIN",
+                                    "match": "Magic +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Magic +4.5",
+                                    "odds": -110,
+                                    "edge": 0.06567332006636117,
+                                    "units": 3.4,
+                                    "wager": 3.4,
+                                    "profit": 3.13,
+                                    "result": "WIN",
+                                    "match": "Magic +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Baltimore Ravens ML",
+                                    "odds": 145,
+                                    "edge": 0.04924569932781925,
+                                    "units": 2.1,
+                                    "wager": 2.1,
+                                    "profit": 3.02,
+                                    "result": "WIN",
+                                    "match": "Baltimore Ravens ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -110,
+                                    "edge": 0.059546379815964445,
+                                    "units": 3.1,
+                                    "wager": 3.1,
+                                    "profit": 2.84,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -110,
+                                    "edge": 0.053696720373062834,
+                                    "units": 2.8,
+                                    "wager": 2.8,
+                                    "profit": 2.56,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -111,
+                                    "edge": 0.05157924913117107,
+                                    "units": 2.7,
+                                    "wager": 2.7,
+                                    "profit": 2.45,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "San Diego State +7",
+                                    "odds": -110,
+                                    "edge": 0.050916878950028166,
+                                    "units": 2.7,
+                                    "wager": 2.7,
+                                    "profit": 2.43,
+                                    "result": "WIN",
+                                    "match": "San Diego State +7"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Pittsburgh vs East Carolina Under 53.5",
+                                    "odds": -110,
+                                    "edge": 0.049119322072891936,
+                                    "units": 2.6,
+                                    "wager": 2.6,
+                                    "profit": 2.34,
+                                    "result": "WIN",
+                                    "match": "Pittsburgh vs East Carolina Under 53.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Magic +4.5",
+                                    "odds": -110,
+                                    "edge": 0.04748400903883432,
+                                    "units": 2.5,
+                                    "wager": 2.5,
+                                    "profit": 2.27,
+                                    "result": "WIN",
+                                    "match": "Magic +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Soccer",
+                                    "selection": "Fulham -0.5",
+                                    "odds": 150,
+                                    "edge": 0.03341755867004392,
+                                    "units": 1.4,
+                                    "wager": 1.4,
+                                    "profit": 2.09,
+                                    "result": "WIN",
+                                    "match": "Fulham -0.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Nets +10",
+                                    "odds": -110,
+                                    "edge": 0.04038700319471811,
+                                    "units": 2.1,
+                                    "wager": 2.1,
+                                    "profit": 1.93,
+                                    "result": "WIN",
+                                    "match": "Nets +10"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Virginia vs Missouri Under 44",
+                                    "odds": -110,
+                                    "edge": 0.04031506038847421,
+                                    "units": 2.1,
+                                    "wager": 2.1,
+                                    "profit": 1.92,
+                                    "result": "WIN",
+                                    "match": "Virginia vs Missouri Under 44"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Jazz vs Spurs Under 243.5",
+                                    "odds": -110,
+                                    "edge": 0.038607327711014494,
+                                    "units": 2.0,
+                                    "wager": 2.0,
+                                    "profit": 1.84,
+                                    "result": "WIN",
+                                    "match": "Jazz vs Spurs Under 243.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Bucks +6.5",
+                                    "odds": -110,
+                                    "edge": 0.03785189844313119,
+                                    "units": 2.0,
+                                    "wager": 2.0,
+                                    "profit": 1.81,
+                                    "result": "WIN",
+                                    "match": "Bucks +6.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Jazz +16.5",
+                                    "odds": -110,
+                                    "edge": 0.03754958368483041,
+                                    "units": 2.0,
+                                    "wager": 2.0,
+                                    "profit": 1.79,
+                                    "result": "WIN",
+                                    "match": "Jazz +16.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Kings +3.5",
+                                    "odds": -110,
+                                    "edge": 0.03754958368483041,
+                                    "units": 2.0,
+                                    "wager": 2.0,
+                                    "profit": 1.79,
+                                    "result": "WIN",
+                                    "match": "Kings +3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Army -8.5",
+                                    "odds": -110,
+                                    "edge": 0.03697809435072397,
+                                    "units": 1.9,
+                                    "wager": 1.9,
+                                    "profit": 1.76,
+                                    "result": "WIN",
+                                    "match": "Army -8.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Hawks +6.5",
+                                    "odds": -110,
+                                    "edge": 0.03599580980482553,
+                                    "units": 1.9,
+                                    "wager": 1.9,
+                                    "profit": 1.72,
+                                    "result": "WIN",
+                                    "match": "Hawks +6.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -110,
+                                    "edge": 0.03514584757032846,
+                                    "units": 1.8,
+                                    "wager": 1.8,
+                                    "profit": 1.68,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -115,
+                                    "edge": 0.03570909971414604,
+                                    "units": 1.9,
+                                    "wager": 1.9,
+                                    "profit": 1.67,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Kings +3.5",
+                                    "odds": -110,
+                                    "edge": 0.03483149267378305,
+                                    "units": 1.8,
+                                    "wager": 1.8,
+                                    "profit": 1.66,
+                                    "result": "WIN",
+                                    "match": "Kings +3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Hawks +7",
+                                    "odds": -110,
+                                    "edge": 0.03476884819212411,
+                                    "units": 1.8,
+                                    "wager": 1.8,
+                                    "profit": 1.66,
+                                    "result": "WIN",
+                                    "match": "Hawks +7"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Bucks +2.5",
+                                    "odds": -110,
+                                    "edge": 0.03475311256590341,
+                                    "units": 1.8,
+                                    "wager": 1.8,
+                                    "profit": 1.66,
+                                    "result": "WIN",
+                                    "match": "Bucks +2.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Woody Marks: RushYds Over 49.5",
+                                    "odds": -111,
+                                    "edge": 0.03448535226532634,
+                                    "units": 1.8,
+                                    "wager": 1.8,
+                                    "profit": 1.64,
+                                    "result": "WIN",
+                                    "match": "Woody Marks: RushYds Over 49.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Suns -4.5",
+                                    "odds": -110,
+                                    "edge": 0.033862857591538176,
+                                    "units": 1.8,
+                                    "wager": 1.8,
+                                    "profit": 1.62,
+                                    "result": "WIN",
+                                    "match": "Suns -4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Texans +1.5",
+                                    "odds": -110,
+                                    "edge": 0.03319474912825082,
+                                    "units": 1.7,
+                                    "wager": 1.7,
+                                    "profit": 1.58,
+                                    "result": "WIN",
+                                    "match": "Texans +1.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Nets +12.5",
+                                    "odds": -110,
+                                    "edge": 0.03293767429533456,
+                                    "units": 1.7,
+                                    "wager": 1.7,
+                                    "profit": 1.57,
+                                    "result": "WIN",
+                                    "match": "Nets +12.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Jazz +16.5",
+                                    "odds": -110,
+                                    "edge": 0.03271075941267465,
+                                    "units": 1.7,
+                                    "wager": 1.7,
+                                    "profit": 1.56,
+                                    "result": "WIN",
+                                    "match": "Jazz +16.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Hawks +7",
+                                    "odds": -110,
+                                    "edge": 0.03216412521543954,
+                                    "units": 1.7,
+                                    "wager": 1.7,
+                                    "profit": 1.54,
+                                    "result": "WIN",
+                                    "match": "Hawks +7"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAB",
+                                    "selection": "1H Connecticut +4.5",
+                                    "odds": -109,
+                                    "edge": 0.031034354958237698,
+                                    "units": 1.6,
+                                    "wager": 1.6,
+                                    "profit": 1.49,
+                                    "result": "WIN",
+                                    "match": "1H Connecticut +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NHL",
+                                    "selection": "San Jose Sharks ML",
+                                    "odds": 125,
+                                    "edge": 0.025933179590437172,
+                                    "units": 1.2,
+                                    "wager": 1.2,
+                                    "profit": 1.46,
+                                    "result": "WIN",
+                                    "match": "San Jose Sharks ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Texans vs Chargers Under 39.5",
+                                    "odds": -110,
+                                    "edge": 0.028987018834976896,
+                                    "units": 1.5,
+                                    "wager": 1.5,
+                                    "profit": 1.38,
+                                    "result": "WIN",
+                                    "match": "Texans vs Chargers Under 39.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Nets +11.5",
+                                    "odds": -110,
+                                    "edge": 0.028695730935959562,
+                                    "units": 1.5,
+                                    "wager": 1.5,
+                                    "profit": 1.37,
+                                    "result": "WIN",
+                                    "match": "Nets +11.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Houston -2.5",
+                                    "odds": -110,
+                                    "edge": 0.02740689970198129,
+                                    "units": 1.4,
+                                    "wager": 1.4,
+                                    "profit": 1.31,
+                                    "result": "WIN",
+                                    "match": "Houston -2.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Miami-OH vs Fresno State Under 41.5",
+                                    "odds": -110,
+                                    "edge": 0.02650120712461923,
+                                    "units": 1.4,
+                                    "wager": 1.4,
+                                    "profit": 1.26,
+                                    "result": "WIN",
+                                    "match": "Miami-OH vs Fresno State Under 41.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Jazz vs Spurs Under 243.5",
+                                    "odds": -110,
+                                    "edge": 0.025547711622147307,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": 1.22,
+                                    "result": "WIN",
+                                    "match": "Jazz vs Spurs Under 243.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Texans vs Chargers Under 39.5",
+                                    "odds": -110,
+                                    "edge": 0.025204269658951506,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": 1.2,
+                                    "result": "WIN",
+                                    "match": "Texans vs Chargers Under 39.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Houston -2.5",
+                                    "odds": -110,
+                                    "edge": 0.024942188035874113,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": 1.19,
+                                    "result": "WIN",
+                                    "match": "Houston -2.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Houston -2.5",
+                                    "odds": -109,
+                                    "edge": 0.024484519753159573,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": 1.17,
+                                    "result": "WIN",
+                                    "match": "Houston -2.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Other",
+                                    "selection": "Pietreczko: Average Under 91.5",
+                                    "odds": -110,
+                                    "edge": 0.02442523695173715,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": 1.17,
+                                    "result": "WIN",
+                                    "match": "Pietreczko: Average Under 91.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Houston Texans vs Los Angeles Chargers Under 40.5",
+                                    "odds": -110,
+                                    "edge": 0.024325697194962248,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": 1.16,
+                                    "result": "WIN",
+                                    "match": "Houston Texans vs Los Angeles Chargers Under 40.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -112,
+                                    "edge": 0.02449888778182696,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": 1.16,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAB",
+                                    "selection": "CS-Northridge vs Stanford Over 163.5",
+                                    "odds": -110,
+                                    "edge": 0.02359106994810556,
+                                    "units": 1.2,
+                                    "wager": 1.2,
+                                    "profit": 1.13,
+                                    "result": "WIN",
+                                    "match": "CS-Northridge vs Stanford Over 163.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Nets vs Wolves Over 224",
+                                    "odds": -110,
+                                    "edge": 0.02288332439604257,
+                                    "units": 1.2,
+                                    "wager": 1.2,
+                                    "profit": 1.09,
+                                    "result": "WIN",
+                                    "match": "Nets vs Wolves Over 224"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Ravens +5",
+                                    "odds": -110,
+                                    "edge": 0.022433368932633146,
+                                    "units": 1.2,
+                                    "wager": 1.2,
+                                    "profit": 1.07,
+                                    "result": "WIN",
+                                    "match": "Ravens +5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Ravens +3",
+                                    "odds": -110,
+                                    "edge": 0.02168187357130502,
+                                    "units": 1.1,
+                                    "wager": 1.1,
+                                    "profit": 1.03,
+                                    "result": "WIN",
+                                    "match": "Ravens +3"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Penn State +3",
+                                    "odds": -110,
+                                    "edge": 0.020981876623062834,
+                                    "units": 1.1,
+                                    "wager": 1.1,
+                                    "profit": 1.0,
+                                    "result": "WIN",
+                                    "match": "Penn State +3"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Virginia +4",
+                                    "odds": -110,
+                                    "edge": 0.020935861837296232,
+                                    "units": 1.1,
+                                    "wager": 1.1,
+                                    "profit": 1.0,
+                                    "result": "WIN",
+                                    "match": "Virginia +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Magic +4.5",
+                                    "odds": -110,
+                                    "edge": 0.02049741007032846,
+                                    "units": 1.1,
+                                    "wager": 1.1,
+                                    "profit": 0.98,
+                                    "result": "WIN",
+                                    "match": "Magic +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Magic +5",
+                                    "odds": -110,
+                                    "edge": 0.017496614229111418,
+                                    "units": 0.9,
+                                    "wager": 0.9,
+                                    "profit": 0.84,
+                                    "result": "WIN",
+                                    "match": "Magic +5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Army -7.5",
+                                    "odds": -110,
+                                    "edge": 0.017046539556412443,
+                                    "units": 0.9,
+                                    "wager": 0.9,
+                                    "profit": 0.81,
+                                    "result": "WIN",
+                                    "match": "Army -7.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAB",
+                                    "selection": "CS Northridge +16.5",
+                                    "odds": -110,
+                                    "edge": 0.016409246694473967,
+                                    "units": 0.9,
+                                    "wager": 0.9,
+                                    "profit": 0.78,
+                                    "result": "WIN",
+                                    "match": "CS Northridge +16.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Houston -1.5",
+                                    "odds": -110,
+                                    "edge": 0.015556721460251555,
+                                    "units": 0.8,
+                                    "wager": 0.8,
+                                    "profit": 0.74,
+                                    "result": "WIN",
+                                    "match": "Houston -1.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "LSU ML",
+                                    "odds": -110,
+                                    "edge": 0.014910011064438566,
+                                    "units": 0.8,
+                                    "wager": 0.8,
+                                    "profit": 0.71,
+                                    "result": "WIN",
+                                    "match": "LSU ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NHL",
+                                    "selection": "Capitals ML",
+                                    "odds": 105,
+                                    "edge": 0.013401221938249497,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": 0.69,
+                                    "result": "WIN",
+                                    "match": "Capitals ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Penn State +3",
+                                    "odds": -110,
+                                    "edge": 0.01435509182157968,
+                                    "units": 0.8,
+                                    "wager": 0.8,
+                                    "profit": 0.69,
+                                    "result": "WIN",
+                                    "match": "Penn State +3"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Over 42",
+                                    "odds": -110,
+                                    "edge": 0.014146177541641936,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": 0.68,
+                                    "result": "WIN",
+                                    "match": "Over 42"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Bucks +6.5",
+                                    "odds": -110,
+                                    "edge": 0.013683407079605803,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": 0.65,
+                                    "result": "WIN",
+                                    "match": "Bucks +6.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Ravens +3",
+                                    "odds": -110,
+                                    "edge": 0.01350059963407968,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": 0.64,
+                                    "result": "WIN",
+                                    "match": "Ravens +3"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Houston -3.5",
+                                    "odds": -110,
+                                    "edge": 0.012624530565170988,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": 0.6,
+                                    "result": "WIN",
+                                    "match": "Houston -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Penn State +3",
+                                    "odds": -110,
+                                    "edge": 0.011876134645371184,
+                                    "units": 0.6,
+                                    "wager": 0.6,
+                                    "profit": 0.57,
+                                    "result": "WIN",
+                                    "match": "Penn State +3"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Penn State +3",
+                                    "odds": -110,
+                                    "edge": 0.011083452474503264,
+                                    "units": 0.6,
+                                    "wager": 0.6,
+                                    "profit": 0.53,
+                                    "result": "WIN",
+                                    "match": "Penn State +3"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Ravens +3",
+                                    "odds": -110,
+                                    "edge": 0.010647027265457853,
+                                    "units": 0.6,
+                                    "wager": 0.6,
+                                    "profit": 0.51,
+                                    "result": "WIN",
+                                    "match": "Ravens +3"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Other",
+                                    "selection": "Fulham ML",
+                                    "odds": -110,
+                                    "edge": 0.010505406629471525,
+                                    "units": 0.6,
+                                    "wager": 0.6,
+                                    "profit": 0.5,
+                                    "result": "WIN",
+                                    "match": "Fulham ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU ML",
+                                    "odds": -160,
+                                    "edge": 0.011828028238736632,
+                                    "units": 0.8,
+                                    "wager": 0.8,
+                                    "profit": 0.48,
+                                    "result": "WIN",
+                                    "match": "BYU ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Virginia +4",
+                                    "odds": -110,
+                                    "edge": 0.010046093236832365,
+                                    "units": 0.5,
+                                    "wager": 0.5,
+                                    "profit": 0.48,
+                                    "result": "WIN",
+                                    "match": "Virginia +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -3.5",
+                                    "odds": -110,
+                                    "edge": 0.010010628473191008,
+                                    "units": 0.5,
+                                    "wager": 0.5,
+                                    "profit": 0.48,
+                                    "result": "WIN",
+                                    "match": "BYU -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Penn State +3.5",
+                                    "odds": -110,
+                                    "edge": 0.009295015108017668,
+                                    "units": 0.5,
+                                    "wager": 0.5,
+                                    "profit": 0.44,
+                                    "result": "WIN",
+                                    "match": "Penn State +3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAB",
+                                    "selection": "San Diego State +6",
+                                    "odds": -102,
+                                    "edge": 0.008931724741907399,
+                                    "units": 0.5,
+                                    "wager": 0.5,
+                                    "profit": 0.44,
+                                    "result": "WIN",
+                                    "match": "San Diego State +6"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Soccer",
+                                    "selection": "Rangers vs Islanders Under 5.5",
+                                    "odds": -110,
+                                    "edge": 0.009212462675003752,
+                                    "units": 0.5,
+                                    "wager": 0.5,
+                                    "profit": 0.44,
+                                    "result": "WIN",
+                                    "match": "Rangers vs Islanders Under 5.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Baltimore Ravens +3.5",
+                                    "odds": -105,
+                                    "edge": 0.008634138398054159,
+                                    "units": 0.4,
+                                    "wager": 0.4,
+                                    "profit": 0.42,
+                                    "result": "WIN",
+                                    "match": "Baltimore Ravens +3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Orlando Magic +4.5",
+                                    "odds": 100,
+                                    "edge": 0.007747948169708252,
+                                    "units": 0.4,
+                                    "wager": 0.4,
+                                    "profit": 0.39,
+                                    "result": "WIN",
+                                    "match": "Orlando Magic +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Texans +2.5",
+                                    "odds": -110,
+                                    "edge": 0.0072987959498450605,
+                                    "units": 0.4,
+                                    "wager": 0.4,
+                                    "profit": 0.35,
+                                    "result": "WIN",
+                                    "match": "Texans +2.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Ravens vs Packers Over 38.5",
+                                    "odds": -110,
+                                    "edge": 0.007202892076401457,
+                                    "units": 0.4,
+                                    "wager": 0.4,
+                                    "profit": 0.34,
+                                    "result": "WIN",
+                                    "match": "Ravens vs Packers Over 38.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Kings +2.5",
+                                    "odds": -110,
+                                    "edge": 0.006648211252121672,
+                                    "units": 0.3,
+                                    "wager": 0.3,
+                                    "profit": 0.32,
+                                    "result": "WIN",
+                                    "match": "Kings +2.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Houston +2",
+                                    "odds": -110,
+                                    "edge": 0.006304590474991545,
+                                    "units": 0.3,
+                                    "wager": 0.3,
+                                    "profit": 0.3,
+                                    "result": "WIN",
+                                    "match": "Houston +2"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Virginia +4.5",
+                                    "odds": -115,
+                                    "edge": 0.0059046315592388154,
+                                    "units": 0.3,
+                                    "wager": 0.3,
+                                    "profit": 0.28,
+                                    "result": "WIN",
+                                    "match": "Virginia +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Soccer",
+                                    "selection": "Under 2.5",
+                                    "odds": -110,
+                                    "edge": 0.00571021295729135,
+                                    "units": 0.3,
+                                    "wager": 0.3,
+                                    "profit": 0.27,
+                                    "result": "WIN",
+                                    "match": "Under 2.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Penn State vs Clemson Under 48.5",
+                                    "odds": -110,
+                                    "edge": 0.004972009431748137,
+                                    "units": 0.3,
+                                    "wager": 0.3,
+                                    "profit": 0.24,
+                                    "result": "WIN",
+                                    "match": "Penn State vs Clemson Under 48.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Nets +11",
+                                    "odds": -110,
+                                    "edge": 0.004972009431748137,
+                                    "units": 0.3,
+                                    "wager": 0.3,
+                                    "profit": 0.24,
+                                    "result": "WIN",
+                                    "match": "Nets +11"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Malik Willis: RushYds Over 31.5",
+                                    "odds": -111,
+                                    "edge": 0.004953813778845628,
+                                    "units": 0.3,
+                                    "wager": 0.3,
+                                    "profit": 0.24,
+                                    "result": "WIN",
+                                    "match": "Malik Willis: RushYds Over 31.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Ravens vs Packers Over 38.5",
+                                    "odds": -110,
+                                    "edge": 0.0038869068736121504,
+                                    "units": 0.2,
+                                    "wager": 0.2,
+                                    "profit": 0.19,
+                                    "result": "WIN",
+                                    "match": "Ravens vs Packers Over 38.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Texans +1.5",
+                                    "odds": -110,
+                                    "edge": 0.0038629458064124433,
+                                    "units": 0.2,
+                                    "wager": 0.2,
+                                    "profit": 0.18,
+                                    "result": "WIN",
+                                    "match": "Texans +1.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "North Texas vs San Diego State Over 52.5",
+                                    "odds": -110,
+                                    "edge": 0.0036681578272864668,
+                                    "units": 0.2,
+                                    "wager": 0.2,
+                                    "profit": 0.18,
+                                    "result": "WIN",
+                                    "match": "North Texas vs San Diego State Over 52.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Texans +2",
+                                    "odds": -110,
+                                    "edge": 0.0034950659388587324,
+                                    "units": 0.2,
+                                    "wager": 0.2,
+                                    "profit": 0.17,
+                                    "result": "WIN",
+                                    "match": "Texans +2"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Baltimore Ravens +3.5",
+                                    "odds": -110,
+                                    "edge": 0.002491860162644133,
+                                    "units": 0.1,
+                                    "wager": 0.1,
+                                    "profit": 0.12,
+                                    "result": "WIN",
+                                    "match": "Baltimore Ravens +3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Texans vs Chargers Under 39.5",
+                                    "odds": -110,
+                                    "edge": 0.002434639703659758,
+                                    "units": 0.1,
+                                    "wager": 0.1,
+                                    "profit": 0.12,
+                                    "result": "WIN",
+                                    "match": "Texans vs Chargers Under 39.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Brooklyn Nets +12.5",
+                                    "odds": -110,
+                                    "edge": 0.002056686651139006,
+                                    "units": 0.1,
+                                    "wager": 0.1,
+                                    "profit": 0.1,
+                                    "result": "WIN",
+                                    "match": "Brooklyn Nets +12.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAB",
+                                    "selection": "Fresno State -5.5",
+                                    "odds": -110,
+                                    "edge": 0.0013323114031836836,
+                                    "units": 0.1,
+                                    "wager": 0.1,
+                                    "profit": 0.06,
+                                    "result": "WIN",
+                                    "match": "Fresno State -5.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NHL",
+                                    "selection": "Sharks vs Canucks Over 6",
+                                    "odds": -110,
+                                    "edge": 0.001165001165299162,
+                                    "units": 0.1,
+                                    "wager": 0.1,
+                                    "profit": 0.06,
+                                    "result": "WIN",
+                                    "match": "Sharks vs Canucks Over 6"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Ravens +3.5",
+                                    "odds": -110,
+                                    "edge": 0.00010540939512704295,
+                                    "units": 0.0,
+                                    "wager": 0.0,
+                                    "profit": 0.01,
+                                    "result": "WIN",
+                                    "match": "Ravens +3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Minnesota Timberwolves -10",
+                                    "odds": -110,
+                                    "edge": 0.0006093070620581953,
+                                    "units": 0.0,
+                                    "wager": 0.0,
+                                    "profit": -0.03,
+                                    "result": "LOSS",
+                                    "match": "Minnesota Timberwolves -10"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Cleveland Cavaliers vs Houston Rockets Over 234.5",
+                                    "odds": -105,
+                                    "edge": 0.0016059759186535238,
+                                    "units": 0.1,
+                                    "wager": 0.1,
+                                    "profit": -0.08,
+                                    "result": "LOSS",
+                                    "match": "Cleveland Cavaliers vs Houston Rockets Over 234.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NHL",
+                                    "selection": "Edmonton Oilers vs Calgary Flames Over 6.5",
+                                    "odds": 100,
+                                    "edge": 0.0016691088676452637,
+                                    "units": 0.1,
+                                    "wager": 0.1,
+                                    "profit": -0.08,
+                                    "result": "LOSS",
+                                    "match": "Edmonton Oilers vs Calgary Flames Over 6.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "North Texas vs San Diego State Under 53.5",
+                                    "odds": -110,
+                                    "edge": 0.0029605314845130293,
+                                    "units": 0.2,
+                                    "wager": 0.2,
+                                    "profit": -0.16,
+                                    "result": "LOSS",
+                                    "match": "North Texas vs San Diego State Under 53.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Packers -3",
+                                    "odds": -110,
+                                    "edge": 0.0032856152171180097,
+                                    "units": 0.2,
+                                    "wager": 0.2,
+                                    "profit": -0.17,
+                                    "result": "LOSS",
+                                    "match": "Packers -3"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Georgia Tech +4",
+                                    "odds": -110,
+                                    "edge": 0.0037920162791297285,
+                                    "units": 0.2,
+                                    "wager": 0.2,
+                                    "profit": -0.2,
+                                    "result": "LOSS",
+                                    "match": "Georgia Tech +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Clemson ML",
+                                    "odds": -162,
+                                    "edge": 0.003185782268757209,
+                                    "units": 0.2,
+                                    "wager": 0.2,
+                                    "profit": -0.21,
+                                    "result": "LOSS",
+                                    "match": "Clemson ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Other",
+                                    "selection": "Fiorentina ML",
+                                    "odds": 143,
+                                    "edge": 0.005383484648088299,
+                                    "units": 0.2,
+                                    "wager": 0.2,
+                                    "profit": -0.23,
+                                    "result": "LOSS",
+                                    "match": "Fiorentina ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Bucks vs Bulls Over 235",
+                                    "odds": -110,
+                                    "edge": 0.004972009431748137,
+                                    "units": 0.3,
+                                    "wager": 0.3,
+                                    "profit": -0.26,
+                                    "result": "LOSS",
+                                    "match": "Bucks vs Bulls Over 235"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NHL",
+                                    "selection": "Detroit Red Wings ML",
+                                    "odds": 173,
+                                    "edge": 0.007942535501696713,
+                                    "units": 0.3,
+                                    "wager": 0.3,
+                                    "profit": -0.31,
+                                    "result": "LOSS",
+                                    "match": "Detroit Red Wings ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Penn State vs Clemson Over 48.5",
+                                    "odds": -110,
+                                    "edge": 0.007630257379441008,
+                                    "units": 0.4,
+                                    "wager": 0.4,
+                                    "profit": -0.4,
+                                    "result": "LOSS",
+                                    "match": "Penn State vs Clemson Over 48.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Tari Eason: Pts Over 11.5",
+                                    "odds": -111,
+                                    "edge": 0.008530509697882493,
+                                    "units": 0.4,
+                                    "wager": 0.4,
+                                    "profit": -0.45,
+                                    "result": "LOSS",
+                                    "match": "Tari Eason: Pts Over 11.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Green Bay -4",
+                                    "odds": -110,
+                                    "edge": 0.008664517175583586,
+                                    "units": 0.5,
+                                    "wager": 0.5,
+                                    "profit": -0.45,
+                                    "result": "LOSS",
+                                    "match": "Green Bay -4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Soccer",
+                                    "selection": "Heart of Midlothian -0.25",
+                                    "odds": -110,
+                                    "edge": 0.009045450460343107,
+                                    "units": 0.5,
+                                    "wager": 0.5,
+                                    "profit": -0.47,
+                                    "result": "LOSS",
+                                    "match": "Heart of Midlothian -0.25"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NHL",
+                                    "selection": "Detroit ML",
+                                    "odds": 145,
+                                    "edge": 0.012959345262877842,
+                                    "units": 0.5,
+                                    "wager": 0.5,
+                                    "profit": -0.55,
+                                    "result": "LOSS",
+                                    "match": "Detroit ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Other",
+                                    "selection": "Everton vs Burnley Over 2.25",
+                                    "odds": -110,
+                                    "edge": 0.010505406629471525,
+                                    "units": 0.6,
+                                    "wager": 0.6,
+                                    "profit": -0.55,
+                                    "result": "LOSS",
+                                    "match": "Everton vs Burnley Over 2.25"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Other",
+                                    "selection": "Lazio vs Udinese Over 2",
+                                    "odds": -110,
+                                    "edge": 0.010505406629471525,
+                                    "units": 0.6,
+                                    "wager": 0.6,
+                                    "profit": -0.55,
+                                    "result": "LOSS",
+                                    "match": "Lazio vs Udinese Over 2"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Pacers +9",
+                                    "odds": -110,
+                                    "edge": 0.010839073430924162,
+                                    "units": 0.6,
+                                    "wager": 0.6,
+                                    "profit": -0.57,
+                                    "result": "LOSS",
+                                    "match": "Pacers +9"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Soccer",
+                                    "selection": "Manchester City -1",
+                                    "odds": -110,
+                                    "edge": 0.011215059530167326,
+                                    "units": 0.6,
+                                    "wager": 0.6,
+                                    "profit": -0.59,
+                                    "result": "LOSS",
+                                    "match": "Manchester City -1"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Phoenix Suns vs New Orleans Pelicans Over 239.5",
+                                    "odds": -110,
+                                    "edge": 0.011570005189804777,
+                                    "units": 0.6,
+                                    "wager": 0.6,
+                                    "profit": -0.61,
+                                    "result": "LOSS",
+                                    "match": "Phoenix Suns vs New Orleans Pelicans Over 239.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Chicago -2",
+                                    "odds": -110,
+                                    "edge": 0.012624530565170988,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": -0.66,
+                                    "result": "LOSS",
+                                    "match": "Chicago -2"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "New Orleans Pelicans +6.5",
+                                    "odds": 110,
+                                    "edge": 0.014002741802306429,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": -0.67,
+                                    "result": "LOSS",
+                                    "match": "New Orleans Pelicans +6.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "New Orleans Pelicans +6.5",
+                                    "odds": 114,
+                                    "edge": 0.014660295203467344,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": -0.69,
+                                    "result": "LOSS",
+                                    "match": "New Orleans Pelicans +6.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Bucks vs Bulls Over 234",
+                                    "odds": -110,
+                                    "edge": 0.013311354886917814,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": -0.7,
+                                    "result": "LOSS",
+                                    "match": "Bucks vs Bulls Over 234"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "Other",
+                                    "selection": "Fiorentina ML",
+                                    "odds": 143,
+                                    "edge": 0.017060690210679852,
+                                    "units": 0.7,
+                                    "wager": 0.7,
+                                    "profit": -0.72,
+                                    "result": "LOSS",
+                                    "match": "Fiorentina ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Chargers -1",
+                                    "odds": -110,
+                                    "edge": 0.014658360254196867,
+                                    "units": 0.8,
+                                    "wager": 0.8,
+                                    "profit": -0.77,
+                                    "result": "LOSS",
+                                    "match": "Chargers -1"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAB",
+                                    "selection": "Stanford -16.5",
+                                    "odds": -110,
+                                    "edge": 0.015003888379959807,
+                                    "units": 0.8,
+                                    "wager": 0.8,
+                                    "profit": -0.79,
+                                    "result": "LOSS",
+                                    "match": "Stanford -16.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Chargers -1",
+                                    "odds": -110,
+                                    "edge": 0.015459863912491545,
+                                    "units": 0.8,
+                                    "wager": 0.8,
+                                    "profit": -0.81,
+                                    "result": "LOSS",
+                                    "match": "Chargers -1"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "New Orleans Pelicans +6.5",
+                                    "odds": 114,
+                                    "edge": 0.018252667144080137,
+                                    "units": 0.9,
+                                    "wager": 0.9,
+                                    "profit": -0.86,
+                                    "result": "LOSS",
+                                    "match": "New Orleans Pelicans +6.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Miami Ohio +5.5",
+                                    "odds": -110,
+                                    "edge": 0.016902594339279875,
+                                    "units": 0.9,
+                                    "wager": 0.9,
+                                    "profit": -0.89,
+                                    "result": "LOSS",
+                                    "match": "Miami Ohio +5.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Georgia Tech +4",
+                                    "odds": -110,
+                                    "edge": 0.01772186018171762,
+                                    "units": 0.9,
+                                    "wager": 0.9,
+                                    "profit": -0.93,
+                                    "result": "LOSS",
+                                    "match": "Georgia Tech +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Chargers -1",
+                                    "odds": -110,
+                                    "edge": 0.017835943471817717,
+                                    "units": 0.9,
+                                    "wager": 0.9,
+                                    "profit": -0.94,
+                                    "result": "LOSS",
+                                    "match": "Chargers -1"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Chargers -1.5",
+                                    "odds": -110,
+                                    "edge": 0.01784625507536386,
+                                    "units": 0.9,
+                                    "wager": 0.9,
+                                    "profit": -0.94,
+                                    "result": "LOSS",
+                                    "match": "Chargers -1.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Milwaukee Bucks vs Chicago Bulls Over 233.5",
+                                    "odds": -110,
+                                    "edge": 0.018170087110428557,
+                                    "units": 1.0,
+                                    "wager": 1.0,
+                                    "profit": -0.95,
+                                    "result": "LOSS",
+                                    "match": "Milwaukee Bucks vs Chicago Bulls Over 233.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Cavs +3.5",
+                                    "odds": -110,
+                                    "edge": 0.019055990945725187,
+                                    "units": 1.0,
+                                    "wager": 1.0,
+                                    "profit": -1.0,
+                                    "result": "LOSS",
+                                    "match": "Cavs +3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Mavs vs Kings Over 232.5",
+                                    "odds": -110,
+                                    "edge": 0.02062502361479257,
+                                    "units": 1.1,
+                                    "wager": 1.1,
+                                    "profit": -1.08,
+                                    "result": "LOSS",
+                                    "match": "Mavs vs Kings Over 232.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Pacers vs Heat Under 230.5",
+                                    "odds": -110,
+                                    "edge": 0.02108034349623178,
+                                    "units": 1.1,
+                                    "wager": 1.1,
+                                    "profit": -1.11,
+                                    "result": "LOSS",
+                                    "match": "Pacers vs Heat Under 230.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "North Texas vs San Diego State Under 54",
+                                    "odds": -110,
+                                    "edge": 0.02244755483808969,
+                                    "units": 1.2,
+                                    "wager": 1.2,
+                                    "profit": -1.18,
+                                    "result": "LOSS",
+                                    "match": "North Texas vs San Diego State Under 54"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Pelicans +5",
+                                    "odds": -110,
+                                    "edge": 0.024356393587021574,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": -1.28,
+                                    "result": "LOSS",
+                                    "match": "Pelicans +5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Missouri ML",
+                                    "odds": -180,
+                                    "edge": 0.018479875155857695,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": -1.29,
+                                    "result": "LOSS",
+                                    "match": "Missouri ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Mavs vs Kings Over 232",
+                                    "odds": -110,
+                                    "edge": 0.024768261682419523,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": -1.3,
+                                    "result": "LOSS",
+                                    "match": "Mavs vs Kings Over 232"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Pacers +9",
+                                    "odds": -110,
+                                    "edge": 0.025203614007858977,
+                                    "units": 1.3,
+                                    "wager": 1.3,
+                                    "profit": -1.32,
+                                    "result": "LOSS",
+                                    "match": "Pacers +9"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Cavs +5",
+                                    "odds": -110,
+                                    "edge": 0.026170758973984465,
+                                    "units": 1.4,
+                                    "wager": 1.4,
+                                    "profit": -1.37,
+                                    "result": "LOSS",
+                                    "match": "Cavs +5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Cavs +4",
+                                    "odds": -110,
+                                    "edge": 0.026406912576584562,
+                                    "units": 1.4,
+                                    "wager": 1.4,
+                                    "profit": -1.39,
+                                    "result": "LOSS",
+                                    "match": "Cavs +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "North Texas -6.5",
+                                    "odds": -110,
+                                    "edge": 0.02702244974318002,
+                                    "units": 1.4,
+                                    "wager": 1.4,
+                                    "profit": -1.42,
+                                    "result": "LOSS",
+                                    "match": "North Texas -6.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Suns vs Pelicans Over 237",
+                                    "odds": -110,
+                                    "edge": 0.027509360086350187,
+                                    "units": 1.4,
+                                    "wager": 1.4,
+                                    "profit": -1.44,
+                                    "result": "LOSS",
+                                    "match": "Suns vs Pelicans Over 237"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAB",
+                                    "selection": "Connecticut +8.5",
+                                    "odds": -110,
+                                    "edge": 0.028192250501541838,
+                                    "units": 1.5,
+                                    "wager": 1.5,
+                                    "profit": -1.48,
+                                    "result": "LOSS",
+                                    "match": "Connecticut +8.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Texans vs Chargers Over 40",
+                                    "odds": -110,
+                                    "edge": 0.029933361780075773,
+                                    "units": 1.6,
+                                    "wager": 1.6,
+                                    "profit": -1.57,
+                                    "result": "LOSS",
+                                    "match": "Texans vs Chargers Over 40"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Georgia Tech +3.5",
+                                    "odds": -110,
+                                    "edge": 0.030429272424607023,
+                                    "units": 1.6,
+                                    "wager": 1.6,
+                                    "profit": -1.6,
+                                    "result": "LOSS",
+                                    "match": "Georgia Tech +3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Jazz vs Spurs Over 243",
+                                    "odds": -110,
+                                    "edge": 0.031680075895218596,
+                                    "units": 1.7,
+                                    "wager": 1.7,
+                                    "profit": -1.66,
+                                    "result": "LOSS",
+                                    "match": "Jazz vs Spurs Over 243"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Pelicans +5",
+                                    "odds": -110,
+                                    "edge": 0.03183051801863168,
+                                    "units": 1.7,
+                                    "wager": 1.7,
+                                    "profit": -1.67,
+                                    "result": "LOSS",
+                                    "match": "Pelicans +5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NHL",
+                                    "selection": "Red Wings ML",
+                                    "odds": 160,
+                                    "edge": 0.04169676395562982,
+                                    "units": 1.7,
+                                    "wager": 1.7,
+                                    "profit": -1.69,
+                                    "result": "LOSS",
+                                    "match": "Red Wings ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Pelicans +5",
+                                    "odds": -110,
+                                    "edge": 0.03255143619719003,
+                                    "units": 1.7,
+                                    "wager": 1.7,
+                                    "profit": -1.71,
+                                    "result": "LOSS",
+                                    "match": "Pelicans +5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NHL",
+                                    "selection": "Anaheim Ducks ML",
+                                    "odds": 125,
+                                    "edge": 0.038555386993620155,
+                                    "units": 1.7,
+                                    "wager": 1.7,
+                                    "profit": -1.73,
+                                    "result": "LOSS",
+                                    "match": "Anaheim Ducks ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAB",
+                                    "selection": "CS-Northridge vs Stanford Under 163",
+                                    "odds": -110,
+                                    "edge": 0.034815101396469816,
+                                    "units": 1.8,
+                                    "wager": 1.8,
+                                    "profit": -1.83,
+                                    "result": "LOSS",
+                                    "match": "CS-Northridge vs Stanford Under 163"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Pacers +8.5",
+                                    "odds": -110,
+                                    "edge": 0.03507152057829355,
+                                    "units": 1.8,
+                                    "wager": 1.8,
+                                    "profit": -1.84,
+                                    "result": "LOSS",
+                                    "match": "Pacers +8.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Cavs +4",
+                                    "odds": -110,
+                                    "edge": 0.036849705945877775,
+                                    "units": 1.9,
+                                    "wager": 1.9,
+                                    "profit": -1.93,
+                                    "result": "LOSS",
+                                    "match": "Cavs +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "BYU -4",
+                                    "odds": -110,
+                                    "edge": 0.03768965460005258,
+                                    "units": 2.0,
+                                    "wager": 2.0,
+                                    "profit": -1.98,
+                                    "result": "LOSS",
+                                    "match": "BYU -4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Georgia Tech +4",
+                                    "odds": -110,
+                                    "edge": 0.038557796251206145,
+                                    "units": 2.0,
+                                    "wager": 2.0,
+                                    "profit": -2.02,
+                                    "result": "LOSS",
+                                    "match": "Georgia Tech +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Cavs +4",
+                                    "odds": -110,
+                                    "edge": 0.03865989900770639,
+                                    "units": 2.0,
+                                    "wager": 2.0,
+                                    "profit": -2.03,
+                                    "result": "LOSS",
+                                    "match": "Cavs +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Chargers -1",
+                                    "odds": -110,
+                                    "edge": 0.0398827478999183,
+                                    "units": 2.1,
+                                    "wager": 2.1,
+                                    "profit": -2.09,
+                                    "result": "LOSS",
+                                    "match": "Chargers -1"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Cavs +5",
+                                    "odds": -110,
+                                    "edge": 0.04106363512220834,
+                                    "units": 2.2,
+                                    "wager": 2.2,
+                                    "profit": -2.16,
+                                    "result": "LOSS",
+                                    "match": "Cavs +5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Georgia Tech +4.0",
+                                    "odds": -113,
+                                    "edge": 0.04159499585908344,
+                                    "units": 2.2,
+                                    "wager": 2.2,
+                                    "profit": -2.21,
+                                    "result": "LOSS",
+                                    "match": "Georgia Tech +4.0"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Chargers -1.5",
+                                    "odds": -110,
+                                    "edge": 0.043424575101761564,
+                                    "units": 2.3,
+                                    "wager": 2.3,
+                                    "profit": -2.28,
+                                    "result": "LOSS",
+                                    "match": "Chargers -1.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Pelicans +5.5",
+                                    "odds": -110,
+                                    "edge": 0.04368880249205087,
+                                    "units": 2.3,
+                                    "wager": 2.3,
+                                    "profit": -2.29,
+                                    "result": "LOSS",
+                                    "match": "Pelicans +5.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NBA",
+                                    "selection": "Pelicans +4.5",
+                                    "odds": -110,
+                                    "edge": 0.04404374815168832,
+                                    "units": 2.3,
+                                    "wager": 2.3,
+                                    "profit": -2.31,
+                                    "result": "LOSS",
+                                    "match": "Pelicans +4.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "North Texas -3.5",
+                                    "odds": -108,
+                                    "edge": 0.04532749836261463,
+                                    "units": 2.4,
+                                    "wager": 2.4,
+                                    "profit": -2.36,
+                                    "result": "LOSS",
+                                    "match": "North Texas -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Clemson ML",
+                                    "odds": -133,
+                                    "edge": 0.04213141729903325,
+                                    "units": 2.5,
+                                    "wager": 2.5,
+                                    "profit": -2.45,
+                                    "result": "LOSS",
+                                    "match": "Clemson ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Georgia Tech vs BYU Over 55.5",
+                                    "odds": -110,
+                                    "edge": 0.05239197469892953,
+                                    "units": 2.8,
+                                    "wager": 2.8,
+                                    "profit": -2.75,
+                                    "result": "LOSS",
+                                    "match": "Georgia Tech vs BYU Over 55.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Pittsburgh -10.5",
+                                    "odds": -110,
+                                    "edge": 0.05271658159437631,
+                                    "units": 2.8,
+                                    "wager": 2.8,
+                                    "profit": -2.77,
+                                    "result": "LOSS",
+                                    "match": "Pittsburgh -10.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Georgia Tech +4",
+                                    "odds": -110,
+                                    "edge": 0.055311410200028166,
+                                    "units": 2.9,
+                                    "wager": 2.9,
+                                    "profit": -2.9,
+                                    "result": "LOSS",
+                                    "match": "Georgia Tech +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Pittsburgh -10",
+                                    "odds": -110,
+                                    "edge": 0.057208566438584074,
+                                    "units": 3.0,
+                                    "wager": 3.0,
+                                    "profit": -3.0,
+                                    "result": "LOSS",
+                                    "match": "Pittsburgh -10"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NFL",
+                                    "selection": "Chargers -1",
+                                    "odds": -110,
+                                    "edge": 0.05799171186628793,
+                                    "units": 3.0,
+                                    "wager": 3.0,
+                                    "profit": -3.04,
+                                    "result": "LOSS",
+                                    "match": "Chargers -1"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "North Texas -3.5",
+                                    "odds": -108,
+                                    "edge": 0.05869282667453479,
+                                    "units": 3.1,
+                                    "wager": 3.1,
+                                    "profit": -3.05,
+                                    "result": "LOSS",
+                                    "match": "North Texas -3.5"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NHL",
+                                    "selection": "Detroit Red Wings ML",
+                                    "odds": 155,
+                                    "edge": 0.0750806097890816,
+                                    "units": 3.1,
+                                    "wager": 3.1,
+                                    "profit": -3.09,
+                                    "result": "LOSS",
+                                    "match": "Detroit Red Wings ML"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Georgia Tech +4",
+                                    "odds": -110,
+                                    "edge": 0.05990192152204965,
+                                    "units": 3.1,
+                                    "wager": 3.1,
+                                    "profit": -3.14,
+                                    "result": "LOSS",
+                                    "match": "Georgia Tech +4"
+                        },
+                        {
+                                    "date": "12/27",
+                                    "league": "NCAAF",
+                                    "selection": "Missouri ML",
+                                    "odds": -180,
+                                    "edge": 0.10625999314444412,
+                                    "units": 7.4,
+                                    "wager": 7.4,
+                                    "profit": -7.44,
+                                    "result": "LOSS",
+                                    "match": "Missouri ML"
+                        }
+            ]
+};
+
+
+
+        function hydrate() {
+            // Stats
+            document.getElementById('stats-roi').textContent = (DATA.stats.roi >= 0 ? '+' : '') + DATA.stats.roi.toFixed(1) + '%';
+
+            // Fix: Add ID to HTML above or use existing. existing ID is 'header-net'
+            document.getElementById('header-net').textContent = (DATA.stats.net_units >= 0 ? '+' : '') + DATA.stats.net_units.toFixed(2) + 'u';
+
+            document.getElementById('stats-record').textContent = DATA.stats.record.replace(/-/g, '/');
+            document.getElementById('stats-winrate').textContent = DATA.stats.win_rate.toFixed(1) + '%';
+
+            // Yesterday
+            document.getElementById('y-date-label').textContent = DATA.yesterday.date;
+            document.getElementById('y-record').textContent = DATA.yesterday.record;
+            document.getElementById('y-net').textContent = (DATA.yesterday.net >= 0 ? '+' : '') + DATA.yesterday.net.toFixed(2) + 'u';
+            document.getElementById('y-roi').textContent = (DATA.yesterday.roi >= 0 ? '+' : '') + DATA.yesterday.roi.toFixed(1) + '%';
+
+            // Ledger
+            const tbody = document.getElementById('ledger-body');
+            tbody.innerHTML = DATA.history.map(row => `
+                <tr class="group hover:bg-zinc-900/80 transition-colors">
+                    <td class="py-3 pl-4 text-zinc-500 text-xs">${row.date} <span class="text-zinc-600">${row.league}</span></td>
+                    <td class="py-3 font-medium text-zinc-300 group-hover:text-pyrite-gold transition-colors">${row.selection}</td>
+                    <td class="py-3 text-right text-zinc-400">${row.odds > 0 ? '+' + row.odds : row.odds}</td>
+                    <td class="py-3 pl-8 text-zinc-500">${row.units.toFixed(1)}u</td>
+                    <td class="py-3 text-right font-bold ${row.result === 'WIN' ? 'text-green-500' : 'text-red-500'}">${row.result}</td>
+                    <td class="py-3 text-right pr-4 font-bold ${row.profit > 0 ? 'text-pyrite-gold' : 'text-zinc-600'}">
+                        ${row.profit > 0 ? '+' : ''}${row.profit.toFixed(2)}u
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.onload = hydrate;
+    </script>
+</body>
+
+</html>

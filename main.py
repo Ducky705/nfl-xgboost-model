@@ -8,20 +8,38 @@ from datetime import datetime
 from scipy.stats import norm
 import xgboost as xgb  # Required for DMatrix
 
+import src.features as v2_features
+import numpy as np
+import shutil
+
 # --- CONFIG ---
-CACHE_PATH = "data/nfl_db.pkl"
+CACHE_PATH_V2 = "data/nfl_db_v2.pkl"
+FEATURES_PATH_V2 = "data/nfl_features_v2.pkl"
+MODEL_SPREAD_PATH = "models/v2_spread.json"
+MODEL_TOTAL_PATH = "models/v2_total.json"
+MODEL_ML_PATH = "models/v2_moneyline.json"
+
 DATA_PATH = "data/betting_history.csv"
 DOCS_PATH = "docs/index.html"
 FIX_VEGAS_SIGNS = True 
 
+# --- SYSTEM PARAMETERS ---
+SYS_VAR_TOLERANCE = "LOW"
+SYS_KELLY_SCALAR = 0.25
+SYS_LIQUIDITY_REQ = "HIGH" 
+
 # --- KELLY CRITERION FUNCTION ---
 def calculate_kelly_units(abs_edge):
-    """Calculates Kelly Unit size based on point spread edge."""
-    STD_DEV = 13.86
+    """Calculates Kelly Unit size based on point spread edge.
+    
+    V3.2 - Balanced thresholds for optimal volume/profit ratio.
+    """
+    STD_DEV = 12.53
     PAYOUT_RATIO = 0.9091
-    MIN_EDGE = 1.0
-    MAX_UNITS = 2.0
-    KELLY_FRACTION = 0.05
+    # V3.2: Balanced from sweep - lower than v3.0 (5.0) but not as loose as v3.1 (1.0)
+    MIN_EDGE = 3.5 
+    MAX_UNITS = 5.0 
+    KELLY_FRACTION = 0.10  # V3.2: More conservative for stability
 
     if abs_edge < MIN_EDGE:
         return 0.0, "None"
@@ -40,6 +58,104 @@ def calculate_kelly_units(abs_edge):
     else: conf = "None"
         
     return units, conf
+
+def calculate_totals_kelly(abs_edge):
+    """Calculates Kelly Unit size for TOTALS.
+    
+    V3.2 - Confirmed optimal via Optuna sweep.
+    """
+    STD_DEV = 13.5
+    PAYOUT_RATIO = 0.9091
+    # V3.2: Confirmed optimal from sweep
+    MIN_EDGE = 4.8 
+    MAX_UNITS = 4.8
+    KELLY_FRACTION = 0.21
+
+    if abs_edge < MIN_EDGE:
+        return 0.0, "None"
+
+    z_score = abs_edge / STD_DEV
+    p = norm.cdf(z_score) 
+    q = 1.0 - p
+
+    full_kelly_percent = (p - (q / PAYOUT_RATIO)) * 100
+    kelly_units = max(0.0, full_kelly_percent * KELLY_FRACTION)
+    units = round(min(kelly_units, MAX_UNITS), 1)
+    
+    if units >= 0.8: conf = "🔥 STRONG"
+    elif units >= 0.5: conf = "💪 SOLID" 
+    elif units >= 0.1: conf = "⚠️ LEAN"
+    else: conf = "None"
+        
+    return units, conf
+
+def calculate_moneyline_kelly(model_prob, vegas_prob, vegas_odds):
+    """Calculates Kelly Unit size for MONEYLINE using true probability-based EV.
+    
+    V3.2 - Balanced volume with proven positive edge.
+    
+    Args:
+        model_prob: Model's predicted win probability (0-1)
+        vegas_prob: Vegas implied probability (0-1) 
+        vegas_odds: American odds for display
+    
+    Returns:
+        (units, confidence_string)
+    """
+    # V3.2: 5% edge threshold (looser than v3.0's 20%, tighter than v3.1's near-0%)
+    MIN_EDGE = 0.05
+    MAX_UNITS = 3.0
+    
+    # Calculate edge
+    edge = model_prob - vegas_prob
+    
+    if edge < MIN_EDGE:
+        return 0.0, "None"
+    
+    # Calculate payout multiplier from odds
+    if vegas_odds < 0:
+        payout = 100 / abs(vegas_odds)  # e.g., -150 -> 0.667
+    else:
+        payout = vegas_odds / 100  # e.g., +150 -> 1.5
+    
+    # True Kelly: f* = (bp - q) / b where b = payout, p = win prob, q = 1-p
+    b = payout
+    p = model_prob
+    q = 1 - p
+    
+    kelly_fraction = (b * p - q) / b if b > 0 else 0
+    
+    # V3.2: Apply fractional Kelly (0.12) and cap
+    units = round(min(max(0, kelly_fraction * 0.12), MAX_UNITS), 1)
+    
+    if units > 0:
+        conf = "💪 SOLID" if edge >= 0.10 else "⚠️ LEAN"
+    else:
+        conf = "None"
+        
+    return units, conf
+
+# --- SYSTEM CONFIDENCE FUNCTION (UNCHANGED) ---
+def calculate_system_confidence(graded_df):
+    """Calculates system confidence based on win rate variance across weeks."""
+    if graded_df.empty or len(graded_df) < 5:
+        return "CALIBRATING", "text-zinc-500", "Insufficient data"
+    
+    weekly_stats = graded_df.groupby('week').apply(
+        lambda x: len(x[x['result'] == 'WIN']) / len(x) * 100 if len(x) > 0 else 0
+    )
+    
+    if len(weekly_stats) < 3:
+        return "CALIBRATING", "text-zinc-500", "Need more weeks"
+    
+    std_dev = weekly_stats.std()
+    
+    if std_dev < 10: return "STABLE", "text-acid-lime", f"σ={std_dev:.1f}%"
+    elif std_dev < 20: return "MODERATE", "text-zinc-300", f"σ={std_dev:.1f}%"
+    elif std_dev < 30: return "ELEVATED", "text-yellow-500", f"σ={std_dev:.1f}%"
+    else: return "HIGH VOLATILITY", "text-warning-orange", f"σ={std_dev:.1f}%"
+
+
 
 # --- SYSTEM CONFIDENCE FUNCTION ---
 def calculate_system_confidence(graded_df):
@@ -71,593 +187,712 @@ def calculate_system_confidence(graded_df):
     else:
         return "HIGH VOLATILITY", "text-warning-orange", f"σ={std_dev:.1f}%"
 
-# --- HTML TEMPLATE ---
-HTML_TEMPLATE = """<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROTOCOL 705 // ALGORITHMIC MARKETS</title>
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;800&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Custom Config -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'void': '#050505',
-                        'panel': '#0A0A0A',
-                        'border-dim': '#1F1F1F',
-                        'acid-lime': '#CCFF00', 
-                        'warning-orange': '#FF4D00', 
-                        'ghost': '#444444'
-                    },
-                    fontFamily: {
-                        'sans': ['"Space Grotesk"', 'sans-serif'],
-                        'mono': ['"JetBrains Mono"', 'monospace'],
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'ticker': 'ticker 30s linear infinite',
-                        'enter': 'slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                    },
-                    keyframes: {
-                        ticker: {
-                            '0%': { transform: 'translateX(0)' },
-                            '100%': { transform: 'translateX(-100%)' },
-                        },
-                        slideUpFade: {
-                            '0%': { transform: 'translateY(20px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body {
-            background-color: #050505;
-            color: #E2E2E2;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .noise {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 50;
-        }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0A0A0A; }
-        ::-webkit-scrollbar-thumb { background: #333; }
-
-        .glow-text { text-shadow: 0 0 10px rgba(204, 255, 0, 0.3); }
+# --- CHART GENERATION FUNCTION ---
+def generate_chart_data(df, n_bars=10):
+    """
+    Generates a list of percentage heights (20-100) for a bar chart
+    based on the rolling cumulative profit of the last n_bars bets.
+    If no history, returns a flat baseline.
+    """
+    if df.empty:
+        return [{'h': 0, 'dir': 'up'}] * n_bars
         
-        .bg-grid {
-            background-size: 40px 40px;
-            background-image: linear-gradient(to right, #1a1a1a 1px, transparent 1px),
-                              linear-gradient(to bottom, #1a1a1a 1px, transparent 1px);
-        }
+    # Get all graded bets to calc proper cumsum
+    graded_df = df[df['status'] == 'GRADED'].copy()
+    
+    if len(graded_df) < 2:
+         return [{'h': 0, 'dir': 'up'}] * n_bars
 
-        .signal-row {
-            cursor: pointer;
-            will-change: transform, opacity;
-        }
-        .signal-row:hover {
-            transform: scale(1.01) translateX(4px);
-            box-shadow: 0 0 30px rgba(204, 255, 0, 0.1);
-            z-index: 10;
-        }
-    </style>
-</head>
-<body class="min-h-screen relative overflow-x-hidden">
-    <div class="noise"></div>
+    # Calculate cumulative profit on FULL history to preserve true level
+    graded_df['cum_profit'] = graded_df['profit'].cumsum()
+    
+    # Now take the tail
+    recent = graded_df.tail(n_bars)
+    
+    # Zero-Centered Normalization
+    cum_profit = recent['cum_profit'].tolist()
+    
+    # Find the maximum absolute deviation from 0 to scale correctly
+    abs_vals = [abs(x) for x in cum_profit]
+    max_dev = max(abs_vals) if abs_vals else 1.0
+    
+    if max_dev == 0: max_dev = 1.0 
+    
+    chart_objs = []
+    for val in cum_profit:
+        pct_of_half = (abs(val) / max_dev) * 100
+        pct_of_half = min(pct_of_half, 100.0)
+        direction = 'up' if val >= 0 else 'down'
+        chart_objs.append({'h': int(pct_of_half), 'dir': direction, 'val': val})
+        
+    # Pad with empty objects if needed
+    while len(chart_objs) < n_bars:
+        chart_objs.insert(0, {'h': 0, 'dir': 'up', 'val': 0})
+        
+    return chart_objs
 
-    <!-- 1. THE TICKER TAPE -->
-    <div class="fixed top-0 w-full bg-acid-lime text-black font-mono text-xs font-bold py-1 z-40 overflow-hidden whitespace-nowrap border-b border-acid-lime">
-        <div class="inline-block animate-ticker">
-            PROTOCOL 705 ONLINE // LAST UPDATE: {{ last_updated }} // ROI: {{ roi }}% // RECORD: {{ record }} // ALPHA GENERATED: {{ units }}u // SYSTEM LOAD: NOMINAL // MARKET VOLATILITY: DETECTED // 
-            PROTOCOL 705 ONLINE // LAST UPDATE: {{ last_updated }} // ROI: {{ roi }}% // RECORD: {{ record }} // ALPHA GENERATED: {{ units }}u // SYSTEM LOAD: NOMINAL // MARKET VOLATILITY: DETECTED // 
-        </div>
-    </div>
-
-    <!-- MAIN CONTAINER -->
-    <div class="max-w-7xl mx-auto pt-16 pb-20 px-4 sm:px-6">
-
-        <!-- 2. HEADER SECTION -->
-        <header class="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-border-dim pb-6 opacity-0 animate-enter" style="animation-delay: 100ms;">
-            <div>
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-3 h-3 bg-acid-lime rounded-full animate-pulse-slow"></div>
-                    <span class="font-mono text-xs text-acid-lime tracking-widest">LIVE SIGNAL</span>
-                </div>
-                <h1 class="text-5xl md:text-7xl font-bold tracking-tighter text-white">PROTOCOL <span class="text-ghost">705</span></h1>
-                <p class="font-mono text-zinc-500 mt-2 text-sm uppercase tracking-wide">XGBoost Algorithmic Infrastructure</p>
-            </div>
-            <div class="text-right mt-6 md:mt-0">
-                <div class="font-mono text-4xl font-bold text-acid-lime glow-text">{{ "+" if units > 0 else "" }}{{ units }}u</div>
-                <div class="font-mono text-xs text-zinc-500 uppercase tracking-widest">Net Alpha Generated</div>
-            </div>
-        </header>
-
-        <!-- 3. THE BENTO GRID DASHBOARD -->
-        <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-16">
-            <!-- Metric 1: ROI -->
-            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-all duration-500 group opacity-0 animate-enter" style="animation-delay: 200ms;">
-                <div class="flex justify-between items-start">
-                    <span class="font-mono text-xs text-zinc-500 uppercase">Return on Investment</span>
-                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                </div>
-                <div class="text-3xl font-bold text-white group-hover:text-acid-lime transition-colors">{{ roi }}%</div>
-            </div>
-
-            <!-- Metric 2: Win Rate -->
-            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-all duration-500 group opacity-0 animate-enter" style="animation-delay: 300ms;">
-                <div class="flex justify-between items-start">
-                    <span class="font-mono text-xs text-zinc-500 uppercase">Win Rate</span>
-                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                </div>
-                <div class="flex items-end gap-3">
-                    <div class="text-3xl font-bold text-white group-hover:text-acid-lime transition-colors">{{ win_pct }}%</div>
-                    <div class="h-1 flex-1 bg-zinc-800 mb-2 rounded-full overflow-hidden">
-                        <div class="h-full bg-white group-hover:bg-acid-lime transition-colors duration-500" style="width: {{ win_pct }}%"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Metric 3: Record -->
-            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-acid-lime transition-all duration-500 group opacity-0 animate-enter" style="animation-delay: 400ms;">
-                <div class="flex justify-between items-start">
-                    <span class="font-mono text-xs text-zinc-500 uppercase">W - L - T</span>
-                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                </div>
-                <div class="text-3xl font-mono text-zinc-300 group-hover:text-acid-lime transition-colors">{{ record | replace('-', '<span class="text-zinc-600 mx-1">/</span>') | safe }}</div>
-            </div>
-
-            <!-- Metric 4: System Confidence -->
-            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 relative overflow-hidden hover:border-acid-lime transition-all duration-500 group opacity-0 animate-enter" style="animation-delay: 500ms;">
-                <div class="flex justify-between items-start z-10 relative">
-                    <span class="font-mono text-xs text-zinc-500 uppercase">System Confidence <span class="text-zinc-600">({{ confidence_detail }})</span></span>
-                    <svg class="w-4 h-4 text-acid-lime opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                </div>
-                <div class="text-xl font-bold {{ confidence_color }} group-hover:text-acid-lime z-10 relative transition-colors">{{ confidence_level }}</div>
-                <!-- Visual Decoration: Wave -->
-                <svg class="absolute bottom-0 left-0 w-full h-20 text-zinc-900 z-0 group-hover:text-zinc-800 transition-colors duration-500" fill="currentColor" viewBox="0 0 1440 320" preserveAspectRatio="none"><path fill-opacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,250.7C960,235,1056,181,1152,165.3C1248,149,1344,171,1392,181.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>
-            </div>
-        </section>
-
-        <!-- 4. THE TRADING DESK (Picks) -->
-        <main class="mb-20">
-            <div class="flex items-center justify-between mb-6 opacity-0 animate-enter" style="animation-delay: 600ms;">
-                <h2 class="font-sans text-2xl font-bold text-white tracking-tight">ACTIVE SIGNALS</h2>
-                <div class="flex gap-2" id="filter-buttons">
-                    <button data-filter="all" class="filter-btn active px-3 py-1 border border-acid-lime text-acid-lime font-mono text-[10px] uppercase cursor-pointer hover:bg-acid-lime hover:text-black transition-all duration-300">All</button>
-                    <button data-filter="strong" class="filter-btn px-3 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-all duration-300">Strong Buy</button>
-                    <button data-filter="solid" class="filter-btn px-3 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-all duration-300">Solid</button>
-                    <button data-filter="lean" class="filter-btn px-3 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:border-acid-lime hover:text-acid-lime transition-all duration-300">Lean</button>
-                </div>
-            </div>
-
-            <!-- Table Header (Styled as Grid) -->
-            <div class="hidden md:grid grid-cols-12 gap-4 text-xs font-mono text-zinc-500 uppercase tracking-wider mb-4 px-6 opacity-0 animate-enter" style="animation-delay: 700ms;">
-                <div class="col-span-3">Instrument (Matchup)</div>
-                <div class="col-span-2 text-right">Market Line</div>
-                <div class="col-span-2 text-right">Model Val</div>
-                <div class="col-span-3">Alpha Gap (Edge)</div>
-                <div class="col-span-2 text-right">Execution</div>
-            </div>
-
-            <!-- Dynamic Content Container -->
-            <div id="cards-container" class="space-y-1">
-                {% for game in active_bets %}
-                {% set borderClass = "border-border-dim" %}
-                {% set barColor = "bg-zinc-600" %}
-                {% set btnClass = "bg-zinc-800 text-zinc-400" %}
-                {% set rowOpacity = "opacity-80 hover:opacity-100" %}
-                {% set confidence = "lean" %}
-
-                {% if 'STRONG' in game.clean_conf %}
-                    {% set borderClass = "border-l-4 border-l-acid-lime border-y border-r border-border-dim bg-[#0F110A]" %}
-                    {% set barColor = "bg-acid-lime" %}
-                    {% set btnClass = "bg-acid-lime text-black hover:bg-white transition-colors" %}
-                    {% set rowOpacity = "opacity-100" %}
-                    {% set confidence = "strong" %}
-                {% elif 'SOLID' in game.clean_conf %}
-                    {% set borderClass = "border-l-4 border-l-emerald-700 border-y border-r border-border-dim" %}
-                    {% set barColor = "bg-emerald-500" %}
-                    {% set btnClass = "bg-emerald-900 text-emerald-100 border border-emerald-700" %}
-                    {% set confidence = "solid" %}
-                {% endif %}
-                
-                {% set edgePercent = ((game.Edge / 12) * 100)|round|int %}
-                {% if edgePercent > 100 %}{% set edgePercent = 100 %}{% endif %}
-
-                <!-- Added delay index for staggering -->
-                <div data-confidence="{{ confidence }}" 
-                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-4 p-4 md:p-6 {{ borderClass }} items-center transition-all duration-300 opacity-0 animate-enter"
-                     style="animation-delay: {{ 800 + (loop.index * 100) }}ms">
-                    
-                    <!-- Matchup -->
-                    <div class="col-span-3">
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-xl md:text-2xl font-bold text-white tracking-tight">{{ game.away }}</span>
-                            <span class="text-zinc-600 text-sm">@</span>
-                            <span class="text-xl md:text-2xl font-bold text-white tracking-tight">{{ game.home }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Market Line -->
-                    <div class="col-span-2 md:text-right font-mono text-zinc-400">
-                        {{ game.Vegas }}
-                    </div>
-
-                    <!-- Model Line -->
-                    <div class="col-span-2 md:text-right font-mono text-zinc-300">
-                        {{ game.Fair_Line }}
-                    </div>
-
-                    <!-- Edge Visualization -->
-                    <div class="col-span-3 flex flex-col justify-center h-full">
-                        <div class="flex justify-between text-xs font-mono mb-1">
-                            <span class="text-zinc-500">EDGE</span>
-                            <span class="{{ 'text-acid-lime' if 'STRONG' in game.clean_conf else 'text-zinc-300' }} font-bold">+{{ game.Edge }}</span>
-                        </div>
-                        <div class="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                            <div class="h-full {{ barColor }} shadow-[0_0_10px_rgba(204,255,0,0.5)]" style="width: {{ edgePercent }}%"></div>
-                        </div>
-                    </div>
-
-                    <!-- Action Button -->
-                    <div class="col-span-2 md:text-right mt-2 md:mt-0">
-                        <button class="w-full md:w-auto px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider {{ btnClass }}">
-                            BET {{ game.pick }} <span class="opacity-70 ml-1">({{ game.units }}u)</span>
-                        </button>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            
-            {% if active_bets|length == 0 %}
-            <div class="p-8 text-center text-zinc-500 border border-border-dim bg-panel font-mono text-sm opacity-0 animate-enter" style="animation-delay: 800ms;">NO ACTIVE SIGNALS DETECTED. SYSTEM STANDBY.</div>
-            {% endif %}
-        </main>
-
-        <!-- 5. HISTORICAL LEDGER -->
-        <section class="border-t border-border-dim pt-12 opacity-0 animate-enter" style="animation-delay: 1000ms;">
-            <h2 class="font-sans text-xl font-bold text-zinc-400 mb-6 tracking-tight">GRADED EXECUTION LOG</h2>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full font-mono text-sm text-left">
-                    <thead class="text-xs text-zinc-600 uppercase border-b border-border-dim">
-                        <tr>
-                            <th class="py-3 pl-4">Week</th>
-                            <th class="py-3">Matchup</th>
-                            <th class="py-3 text-right">Spread</th>
-                            <th class="py-3 text-right">Edge</th>
-                            <th class="py-3 pl-8">Position</th>
-                            <th class="py-3 text-right">Result</th>
-                            <th class="py-3 text-right pr-4">P&L</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border-dim text-zinc-400" id="ledger-body">
-                        {% for row in history %}
-                        {% set isWin = row.result == 'WIN' %}
-                        {% set profitClass = "text-acid-lime" if isWin else ("text-warning-orange" if row.result == 'LOSS' else "text-zinc-500") %}
-                        <tr class="hover:bg-zinc-900 transition-colors">
-                            <td class="py-3 pl-4 border-b border-zinc-900">W{{ row.week }}</td>
-                            <td class="py-3 border-b border-zinc-900 font-bold text-zinc-300">{{ row.matchup }}</td>
-                            <td class="py-3 text-right border-b border-zinc-900">{{ row.line_display }}</td>
-                            <td class="py-3 text-right border-b border-zinc-900 text-zinc-500">{{ row.edge }}</td>
-                            <td class="py-3 pl-8 border-b border-zinc-900"><span class="bg-zinc-800 text-white px-2 py-0.5 text-xs font-bold">{{ row.pick_team }}</span></td>
-                            <td class="py-3 text-right border-b border-zinc-900">
-                                <span class="{{ profitClass }} font-bold">{{ row.result }}</span>
-                            </td>
-                            <td class="py-3 text-right pr-4 border-b border-zinc-900 {{ profitClass }}">{{ "+" if row.profit > 0 else "" }}{{ row.profit }}u</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- FOOTER -->
-        <footer class="mt-20 border-t border-border-dim pt-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center text-zinc-600 text-xs font-mono opacity-0 animate-enter" style="animation-delay: 1200ms;">
-            <p>PROTOCOL 705 © 2025. DESIGNED BY THE VOID.</p>
-            <p class="mt-2 md:mt-0">PAST PERFORMANCE IS NOT INDICATIVE OF FUTURE ALPHA.</p>
-        </footer>
-    </div>
-
-    <script>
-        // Filter functionality with Entrance Animations
-        document.addEventListener('DOMContentLoaded', function() {
-            const filterButtons = document.querySelectorAll('.filter-btn');
-            const signalRows = document.querySelectorAll('.signal-row');
-
-            filterButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const filter = this.dataset.filter;
-
-                    // Update active button styles
-                    filterButtons.forEach(btn => {
-                        btn.classList.remove('active', 'border-acid-lime', 'text-acid-lime');
-                        btn.classList.add('border-zinc-700', 'text-zinc-500');
-                    });
-                    this.classList.add('active', 'border-acid-lime', 'text-acid-lime');
-                    this.classList.remove('border-zinc-700', 'text-zinc-500');
-
-                    // Filter Logic:
-                    // 1. Fade out all rows
-                    // 2. Hide non-matching rows
-                    // 3. Fade in matching rows with stagger
-
-                    let visibleIndex = 0;
-
-                    signalRows.forEach(row => {
-                        // Reset animation
-                        row.style.animation = 'none';
-                        row.offsetHeight; // Trigger reflow
-                        row.style.animation = null; // Re-enable CSS animation
-                        
-                        const confidence = row.dataset.confidence;
-                        const isMatch = (filter === 'all' || confidence === filter);
-
-                        if (isMatch) {
-                            row.style.display = 'grid';
-                            // Add custom animation class for re-entry
-                            row.classList.remove('opacity-0', 'animate-enter');
-                            row.style.opacity = '0';
-                            row.style.transform = 'translateY(10px)';
-                            
-                            // Use timeout to stagger the re-appearance
-                            setTimeout(() => {
-                                row.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-                                row.style.opacity = '1';
-                                row.style.transform = 'translateY(0)';
-                            }, visibleIndex * 50); // Fast stagger
-
-                            visibleIndex++;
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    });
-                    
-                    // Re-add hover capabilities after animation
-                    setTimeout(() => {
-                         signalRows.forEach(r => {
-                             r.style.transition = ''; // clear inline transition to default back to CSS
-                             r.style.transform = '';
-                         })
-                    }, visibleIndex * 50 + 400);
-                });
-            });
-        });
-    </script>
-</body>
-</html>
-"""
+# --- ORION TEMPLATE (SPREAD - CYAN/TERMINAL) ---
 
 # --- 1. LOAD DB ---
-if not os.path.exists(CACHE_PATH):
+if not os.path.exists(CACHE_PATH_V2):
     print("❌ Cache not found!")
     exit()
 
-with open(CACHE_PATH, 'rb') as f:
+print(f"Loading V2 Database: {CACHE_PATH_V2}")
+with open(CACHE_PATH_V2, 'rb') as f:
     db = pickle.load(f)
 
-model = db['model']
-games_df = db['games_df']
-CURRENT_SEASON = db['current_season']
+# Load Models
+print(f"Loading Models...")
+spread_model = xgb.Booster()
+spread_model.load_model(MODEL_SPREAD_PATH)
+total_model = xgb.Booster() 
+total_model.load_model(MODEL_TOTAL_PATH)
+ml_model = xgb.XGBClassifier()
+ml_model.load_model(MODEL_ML_PATH)
 
-X_cols = [
-    'qb_diff', 'edsr_diff', 'ypp_diff', 'pythag_diff', 'rest_diff',
-    'sack_mismatch_home', 'sack_mismatch_away',
-    'st_diff', 'turnover_diff', 'rz_diff', 'penalty_diff',
-    'home_field_strength', 'roof',
-    'home_qb_volatility', 'away_qb_volatility'
-]
+# Load History (Features for context)
+with open(FEATURES_PATH_V2, 'rb') as f:
+    feature_df = pickle.load(f)
 
-# --- 2. BACKFILL ENGINE ---
-def run_backfill(model, games_df):
-    completed = games_df[(games_df['season'] == CURRENT_SEASON) & (games_df['result'].notna())].copy()
-    
-    bets = []
-    for _, game in completed.iterrows():
-        X = pd.DataFrame([game[X_cols]])
-        
-        # --- FIXED PREDICTION FOR BOOSTER ---
-        try:
-            # Try predicting as XGBRegressor
-            raw_pred = -1 * model.predict(X)[0]
-        except:
-            # Fallback to Booster prediction (requires DMatrix)
-            dmat = xgb.DMatrix(X)
-            raw_pred = -1 * model.predict(dmat)[0]
+CURRENT_SEASON = feature_df['season'].max()
 
-        fair_line = max(min(raw_pred, 21), -21)
-        
-        raw_spread = game['spread_line']
-        if pd.isna(raw_spread): continue
-        vegas_line = -1 * raw_spread if FIX_VEGAS_SIGNS else raw_spread
-        
-        diff = fair_line - vegas_line
-        if abs(diff) > 10: fair_line = vegas_line + (diff * 0.5) 
-        
-        raw_edge = round(vegas_line - fair_line, 2)
-        abs_edge = abs(raw_edge)
-        
-        units, conf_badge = calculate_kelly_units(abs_edge)
-        
-        action = "PASS"; conf = ""; 
-        
-        if units > 0.0:
-            pick_team = game['home_team'] if raw_edge > 0 else game['away_team']
-            action = f"BET {pick_team}"
-            conf = conf_badge.replace("🔥 ", "").replace("⚠️ ", "").replace("💪 ", "").replace("None", "")
-            
-            pick = action.replace("BET ", "")
-            actual = game['result']
-            
-            res = 'LOSS'; profit = -1.0 * units
-            
-            if pick == game['home_team']:
-                if actual > game['spread_line']: 
-                    res = 'WIN'; profit = round(0.91 * units, 2)
-                elif actual == game['spread_line']: 
-                    res = 'PUSH'; profit = 0.0
-            else:
-                if actual < game['spread_line']: 
-                    res = 'WIN'; profit = round(0.91 * units, 2)
-                elif actual == game['spread_line']: 
-                    res = 'PUSH'; profit = 0.0
-            
-            vegas_dsp = f"{game['home_team']} {vegas_line:.1f}" if vegas_line < 0 else f"{game['home_team']} +{vegas_line:.1f}"
-            fair_dsp = f"{game['home_team']} {fair_line:.1f}" if fair_line < 0 else f"{game['home_team']} +{fair_line:.1f}"
+# Removed spread_to_moneyline function in favor of dedicated model
 
-            bets.append({
-                'season': game['season'], 'week': game['week'], 
-                'matchup': f"{game['away_team']} @ {game['home_team']}",
-                'pick': f"{pick} ({units}u)",
-                'pick_team': pick,
-                'home': game['home_team'], 'away': game['away_team'],
-                'line_display': vegas_dsp, 'fair_display': fair_dsp,
-                'edge': round(abs_edge, 1),
-                'conf': conf,
-                'result': res, 'profit': profit,
-                'units_wagered': units,
-                'status': 'GRADED', 'game_id': game['game_id']
-            })
-            
-    return pd.DataFrame(bets)
+# --- 2. PREDICT UPCOMING ---
+def run_predictions(schedule, base_stats, injury_stats, spread_model, total_model, ml_model, override_week=None, min_week=0):
+    # Filter schedule for upcoming games in CURRENT_SEASON
+    if override_week:
+        upcoming = schedule[(schedule['season'] == CURRENT_SEASON) & (schedule['week'] == override_week)].copy()
+        next_week = override_week
+    else:
+        upcoming = schedule[(schedule['season'] == CURRENT_SEASON) & (schedule['result'].isna()) & (schedule['game_type'] == 'REG')].copy()
+        # Enforce min_week constraint (strictly greater than last graded)
+        upcoming = upcoming[upcoming['week'] > min_week]
+        
+        if upcoming.empty: 
+            return [], 0
+        next_week = upcoming['week'].min()
 
-# --- 3. PREDICT UPCOMING ---
-def run_predictions(model, games_df):
-    upcoming = games_df[(games_df['season'] == CURRENT_SEASON) & (games_df['result'].isna())].copy()
-    if upcoming.empty: return []
-    
-    next_week = upcoming['week'].min()
     print(f"🔮 Analyzing Week {next_week}...")
-    week_df = upcoming[upcoming['week'] == next_week]
+    
+    # Run Pipeline
+    full_games = v2_features.engineering_pipeline(schedule, base_stats, injury_stats)
+    
+    # Filter for next week
+    week_df = full_games[(full_games['season'] == CURRENT_SEASON) & (full_games['week'] == next_week)].copy()
     
     preds = []
+    
+    # Get model features
+    spread_features = spread_model.feature_names
+    total_features = total_model.feature_names
+    # ml_model might be XGBClassifier (sklearn wrapper) or Booster. 
+    # If loaded via load_model on XGBClassifier instance, it has feature_names_in_ usually?
+    # Or calculate from booster.
+    try:
+        ml_features = ml_model.feature_names
+    except:
+        ml_features = ml_model.get_booster().feature_names
+    
+    if not spread_features:
+        print("⚠️ Model feature names missing!")
+        return [], 0
+
     for _, game in week_df.iterrows():
-        X = pd.DataFrame([game[X_cols]])
+        # --- PREPARE DATA ---
+        row_df = pd.DataFrame([game])
+        
+        # Spread Data
+        for c in spread_features:
+            if c not in row_df.columns: row_df[c] = 0
+        X_spread = xgb.DMatrix(row_df[spread_features])
+        
+        # Total Data
+        for c in total_features:
+            if c not in row_df.columns: row_df[c] = 0
+        X_total = xgb.DMatrix(row_df[total_features])
 
-        # --- FIXED PREDICTION FOR BOOSTER ---
-        try:
-            raw_pred = -1 * model.predict(X)[0]
-        except:
-            dmat = xgb.DMatrix(X)
-            raw_pred = -1 * model.predict(dmat)[0]
+        # Moneyline Data
+        for c in ml_features:
+            if c not in row_df.columns: row_df[c] = 0
+        
+        # Note: DMatrix is needed for Booster, but if we use XGBClassifier.predict_proba we might need DataFrame?
+        # If we loaded into an XGBClassifier instance, we can pass df or DMatrix.
+        # Ideally pass DataFrame with correct column order.
+        X_ml = row_df[ml_features]
+        
+        # --- PREDICTIONS ---
+        pred_margin = spread_model.predict(X_spread)[0] # Home Margin
+        pred_total = total_model.predict(X_total)[0]    # Total Score
+        
+        fair_line = max(min(pred_margin, 25), -25)
+        fair_total = max(min(pred_total, 70), 20)
+        
+        # --- SPREAD BETTING ---
+        # FIX: 'spread_line' in DB seems to be AWAY TEAM SPREAD (e.g. NE -13.5 means Away Team -13.5).
+        # Standard convention: (-) is Favorite.
+        raw_away_spread = game['spread_line']
+        
+        action_spread = "PASS"; units_spread = 0.0
+        edge_spread = 0.0
+        
+        if not pd.isna(raw_away_spread):
+            # If Away Spread is -13.5. Away is Favored.
+            # Home Spread is +13.5.
+            
+            # Predict Margin (Home Score - Away Score)
+            # spread_model predicts Home Margin.
+            # If Home Margin is +10. (Home wins by 10).
+            # If Home Spread is +13.5. Home covers easily.
+            
+            # Vegas Expectation for Home Margin: -1 * Home Spread.
+            # NO. Vegas Expectation (Spread Line) usually means "Home Score + Spread = Away Score"? No.
+            # Spread -7 (Home Fav). Home must win by 7.
+            # Expected Margin = +7.
+            # So Expected Margin = -1 * Home Spread.
+            
+            home_spread = -1 * raw_away_spread
+            vegas_home_margin = -1 * home_spread # Expected Home Win Margin
+            
+            # Edge = Predicted Home Margin - Vegas Expected Home Margin
+            # Example: Pred +10. Vegas +7 (Spread -7). Edge = +3.
+            edge_spread = pred_margin - vegas_home_margin
+            
+            # Calculate Kelly
+            units_spread, conf_spread = calculate_kelly_units(abs(edge_spread))
+            
+            # Determine Pick Team (Lean) regardless of units
+            if edge_spread > 0:
+                pick_team = game['home_team']
+            else:
+                pick_team = game['away_team']
 
-        fair_line = max(min(raw_pred, 21), -21)
-        
-        raw_spread = game['spread_line']
-        if pd.isna(raw_spread): continue
-        vegas_line = -1 * raw_spread if FIX_VEGAS_SIGNS else raw_spread
-        
-        diff = fair_line - vegas_line
-        if abs(diff) > 10: fair_line = vegas_line + (diff * 0.5)
-        
-        raw_edge = round(vegas_line - fair_line, 2)
-        abs_edge = abs(raw_edge)
-        
-        units, conf_badge = calculate_kelly_units(abs_edge)
-        
-        action = "PASS"; conf = conf_badge; 
-        
-        if units > 0.0: 
-            pick_team = game['home_team'] if raw_edge > 0 else game['away_team']
-            action = f"BET {pick_team} ({units}u)"
-        
-        vegas_dsp = f"{game['home_team']} {vegas_line:.1f}" if vegas_line < 0 else f"{game['home_team']} +{vegas_line:.1f}"
-        fair_dsp = f"{game['home_team']} {fair_line:.1f}" if fair_line < 0 else f"{game['home_team']} +{fair_line:.1f}"
-        
-        preds.append({
-            'Matchup': f"{game['away_team']} @ {game['home_team']}",
-            'home': game['home_team'], 'away': game['away_team'],
-            'Vegas': vegas_dsp, 'Fair_Line': fair_dsp, 
-            'Edge': round(abs_edge, 1),
-            'Action': action, 
-            'Conf': conf, 
-            'clean_conf': conf.replace("🔥 ", "").replace("⚠️ ", "").replace("💪 ", "").replace("None", ""),
-            'week': next_week, 'game_id': game['game_id'],
-            'units': units,
-            'pick': action.replace("BET ", "").split(" (")[0], # Just the team name
-            'pick_full': action.replace("BET ", "")
-        })
-    return preds
+            if units_spread > 0.0:
+                action_spread = f"BET {pick_team} ({units_spread}u)"
+            else:
+                action_spread = "PASS"
+                conf_spread = "None"
+            
+            # Display Logic
+            display_line = f"{game['away_team']} {raw_away_spread:+}"
+            
+            clean_conf = conf_spread.replace("🔥 ", "").replace("⚠️ ", "").replace("💪 ", "").replace("None", "")
+            
+            preds.append({
+                'Matchup': f"{game['away_team']} @ {game['home_team']}",
+                'Vegas': f"{display_line}", 
+                'Fair_Line': f"{game['away_team']} {fair_line:+.1f}",
+                'Edge': round(abs(edge_spread), 1),
+                'Action': action_spread,
+                'Conf': conf_spread,
+                'clean_conf': clean_conf,
+                'units': units_spread,
+                'pick': pick_team,
+                'game_id': game.get('game_id', ''),
+                'week': next_week,
+                'type': 'spread',
+                'home': game['home_team'],
+                'away': game['away_team']
+            })
 
-# --- 4. OUTPUT ---
+        # --- TOTAL BETTING ---
+        raw_total = game['total_line']
+        if not pd.isna(raw_total):
+            # Edge: Pred - Vegas
+            # If Pred > Vegas (e.g. 50 > 45), Edge +5. Bet Over.
+            # If Pred < Vegas (e.g. 40 < 45), Edge -5 (Absolute 5). Bet Under.
+            
+            diff_total = fair_total - raw_total
+            abs_total_edge = abs(diff_total)
+            
+            # Use TOTALS-SPECIFIC Kelly with higher selectivity
+            units_total, conf_total = calculate_totals_kelly(abs_total_edge)
+            
+            if units_total > 0.0:
+                pick_type = "OVER" if diff_total > 0 else "UNDER"
+                action_total = f"BET {pick_type} {raw_total}"
+            else:
+                pick_type = "OVER" if diff_total > 0 else "UNDER"
+                action_total = "PASS"
+                conf_total = "None"
+                
+            preds.append({
+                'Matchup': f"{game['away_team']} @ {game['home_team']}",
+                'Vegas': f"{raw_total}",
+                'Fair_Line': f"{fair_total:.1f}",
+                'Edge': round(abs_total_edge, 1),
+                'Action': action_total,
+                'Conf': conf_total,
+                'clean_conf': conf_total.replace("🔥 ", "").replace("⚠️ ", "").replace("💪 ", "").replace("None", ""),
+                'units': units_total,
+                'pick': pick_type,
+                'game_id': game.get('game_id', ''),
+                'week': next_week,
+                'type': 'total',
+                'home': game['home_team'],
+                'away': game['away_team']
+            })
+
+        # --- MONEYLINE BETTING (Evaluate BOTH Home and Away) ---
+        if 'home_moneyline' in game and not pd.isna(game['home_moneyline']) and 'away_moneyline' in game and not pd.isna(game['away_moneyline']):
+            # Predict Probabilities
+            prob_home_win = ml_model.predict_proba(X_ml)[0][1]
+            prob_away_win = 1 - prob_home_win
+            
+            vegas_ml_home = game['home_moneyline']
+            vegas_ml_away = game['away_moneyline']
+            
+            # Vegas Implied Probabilities
+            if vegas_ml_home < 0: v_prob_home = -vegas_ml_home / (-vegas_ml_home + 100)
+            else: v_prob_home = 100 / (vegas_ml_home + 100)
+            
+            if vegas_ml_away < 0: v_prob_away = -vegas_ml_away / (-vegas_ml_away + 100)
+            else: v_prob_away = 100 / (vegas_ml_away + 100)
+            
+            # Calculate edges for BOTH sides
+            edge_home = prob_home_win - v_prob_home
+            edge_away = prob_away_win - v_prob_away
+            
+            # Helper function for odds formatting
+            def fmt_odds(o): return f"+{int(o)}" if o > 0 else f"{int(o)}"
+            
+            # Evaluate HOME team bet
+            units_home, conf_home = calculate_moneyline_kelly(prob_home_win, v_prob_home, vegas_ml_home)
+            
+            # Evaluate AWAY team bet
+            units_away, conf_away = calculate_moneyline_kelly(prob_away_win, v_prob_away, vegas_ml_away)
+            
+            # Pick the better opportunity (or pass if neither qualifies)
+            if units_home > 0 and units_home >= units_away:
+                # Bet HOME
+                pick_team = game['home_team']
+                pick_odds = vegas_ml_home
+                pick_prob = prob_home_win
+                pick_edge = edge_home
+                pick_units = units_home
+                pick_conf = conf_home
+            elif units_away > 0:
+                # Bet AWAY
+                pick_team = game['away_team']
+                pick_odds = vegas_ml_away
+                pick_prob = prob_away_win
+                pick_edge = edge_away
+                pick_units = units_away
+                pick_conf = conf_away
+            else:
+                # PASS - no value on either side
+                pick_team = None
+                pick_units = 0.0
+                pick_conf = "None"
+            
+            # Convert model prob to fair odds for display
+            if pick_team:
+                if pick_prob >= 0.5:
+                    fair_odds = int(-1 * (100 * pick_prob) / (1 - pick_prob)) if pick_prob < 0.99 else -10000
+                else:
+                    fair_odds = int((100 * (1 - pick_prob)) / pick_prob) if pick_prob > 0.01 else 10000
+                
+                action_ml = f"BET {pick_team} ML ({fmt_odds(pick_odds)})"
+                # Include team name in Vegas and Fair strings
+                vegas_str = f"{pick_team} {fmt_odds(pick_odds)}"
+                fair_str = f"{pick_team} {fmt_odds(fair_odds)}"
+                clean_conf_ml = pick_conf.replace("🔥 ", "").replace("⚠️ ", "").replace("💪 ", "").replace("None", "").lower()
+            else:
+                action_ml = "PASS"
+                vegas_str = f"{game['home_team']} {fmt_odds(vegas_ml_home)}"
+                # Calculate fair odds for home team even when passing
+                if prob_home_win >= 0.5:
+                    fair_home_odds = int(-1 * (100 * prob_home_win) / (1 - prob_home_win)) if prob_home_win < 0.99 else -10000
+                else:
+                    fair_home_odds = int((100 * (1 - prob_home_win)) / prob_home_win) if prob_home_win > 0.01 else 10000
+                fair_str = f"{game['home_team']} {fmt_odds(fair_home_odds)}"
+                pick_edge = max(abs(edge_home), abs(edge_away))
+                clean_conf_ml = ""
+                pick_team = game['home_team']  # Default for display
+            
+            preds.append({
+                'Matchup': f"{game['away_team']} @ {game['home_team']}",
+                'Vegas': vegas_str,
+                'Fair_Line': fair_str,
+                'Edge': round(abs(pick_edge) * 100, 1),
+                'Action': action_ml,
+                'Conf': pick_conf,
+                'clean_conf': clean_conf_ml,
+                'units': pick_units,
+                'pick': f"{pick_team} ML",
+                'game_id': game.get('game_id', ''),
+                'week': next_week,
+                'type': 'moneyline',
+                'home': game['home_team'],
+                'away': game['away_team']
+            })
+        
+    return preds, next_week
+
+# --- 3. OUTPUT ---
 if __name__ == "__main__":
     os.makedirs("templates", exist_ok=True)
-    with open("templates/dashboard.html", "w", encoding="utf-8") as f:
-        f.write(HTML_TEMPLATE)
+    # Templates are now defined as variables (ORION, PULSAR, QUASAR) and loaded via from_string check render_page
 
-    backfill_df = run_backfill(model, games_df)
-    active_bets = run_predictions(model, games_df)
+
+    # --- DATA LOADING & PARTITIONING ---
     
-    # Sort Active Bets: Units Desc, then Edge Desc
-    if active_bets:
-        active_bets.sort(key=lambda x: (x['units'], x['Edge']), reverse=True)
-        print("\n" + tabulate(pd.DataFrame(active_bets)[['Matchup', 'Vegas', 'Fair_Line', 'Edge', 'Action']], headers="keys", tablefmt="github"))
-    
+    # Load History FIRST to determine min_week
     if os.path.exists(DATA_PATH):
-        existing = pd.read_csv(DATA_PATH)
-        existing = existing[existing['season'] != CURRENT_SEASON]
+        try:
+            final_hist = pd.read_csv(DATA_PATH)
+            # Determine last graded week
+            graded_weeks = final_hist[final_hist['status'] == 'GRADED']['week']
+            last_graded_week = graded_weeks.max() if not graded_weeks.empty else 0
+        except:
+            final_hist = pd.DataFrame()
+            last_graded_week = 0
     else:
-        existing = pd.DataFrame()
-        
-    final_hist = pd.concat([existing, backfill_df], ignore_index=True)
-    final_hist.to_csv(DATA_PATH, index=False)
+        final_hist = pd.DataFrame()
+        last_graded_week = 0
+
+    print(f"📅 Last Graded Week: {last_graded_week}. Checking for pending games...")
     
+    # Check if the last graded week is actually complete
+    min_scan_week = last_graded_week
+    pending_game_ids = set()
+    
+    if last_graded_week > 0:
+        schedule = db['schedule']
+        pending = schedule[
+            (schedule['season'] == CURRENT_SEASON) & 
+            (schedule['week'] == last_graded_week) & 
+            (schedule['result'].isna()) &
+            (schedule['game_type'] == 'REG')
+        ]
+        if not pending.empty:
+            print(f"⚠️ Week {last_graded_week} incomplete ({len(pending)} games pending). Staying on Week {last_graded_week}.")
+            min_scan_week = last_graded_week - 1
+            pending_game_ids = set(pending['game_id'])
+            
+            
+    print(f"🚀 Scanning for Week {min_scan_week + 1}+")
+
+    active_bets, next_week_num = run_predictions(db['schedule'], db['base_stats'], db['injury_stats'], spread_model, total_model, ml_model, min_week=min_scan_week)
+    
+    # Sort ALL Active Bets for Index/Selector logic
+    if active_bets:
+        # If we are restricting to pending games (because week is incomplete), filter here
+        if pending_game_ids:
+            print(f"🧹 Filtering Active Bets to {len(pending_game_ids)} pending games...")
+            active_bets = [b for b in active_bets if b.get('game_id') in pending_game_ids]
+            
+        active_bets.sort(key=lambda x: (x['units'], x['Edge']), reverse=True)
+    
+    # Partition Active Bets
+    spread_bets = [x for x in active_bets if x.get('type') == 'spread']
+    total_bets = [x for x in active_bets if x.get('type') == 'total']
+    ml_bets = [x for x in active_bets if x.get('type') == 'moneyline']
+
+    # (History already loaded)
+        
     env = Environment(loader=FileSystemLoader('templates'))
-    template = env.get_template('dashboard.html')
     
-    curr = final_hist[final_hist['season'] == CURRENT_SEASON]
-    graded = curr[curr['status'] == 'GRADED']
-    wins = len(graded[graded['result'] == 'WIN'])
-    losses = len(graded[graded['result'] == 'LOSS'])
-    pushes = len(graded[graded['result'] == 'PUSH'])
-    total = wins + losses + pushes
-    profit = graded['profit'].sum()
-    
-    recent = []
-    if not graded.empty:
-        last_wk = graded['week'].max()
-        # Sort Recent Bets: Profit Desc
-        recent_df = graded[graded['week'] == last_wk].copy()
-        recent_df = recent_df.sort_values('profit', ascending=False)
-        recent = recent_df.to_dict('records')
-    
-    # Calculate system confidence based on win rate variance
-    confidence_level, confidence_color, confidence_detail = calculate_system_confidence(graded)
+    # --- HELPER: RENDER PAGE ---
+    def render_page(filename, title, model_name, bets_list, hist_df, template_filename):
+        # Calc Stats
+        graded = hist_df[hist_df['status'] == 'GRADED']
+        wins = len(graded[graded['result'] == 'WIN'])
+        losses = len(graded[graded['result'] == 'LOSS'])
+        pushes = len(graded[graded['result'] == 'PUSH'])
+        total_games = wins + losses + pushes
+        profit = graded['profit'].sum()
         
-    html = template.render(
-        active_bets=active_bets,
-        last_updated=datetime.now().strftime("%Y-%m-%d %H:%M UTC"),
-        roi=round((profit/total)*100, 1) if total > 0 else 0.0,
-        units=round(profit, 2),
-        record=f"{wins}-{losses}-{pushes}",
-        win_pct=round((wins/total)*100, 1) if total > 0 else 0.0,
-        history=recent,
-        confidence_level=confidence_level,
-        confidence_color=confidence_color,
-        confidence_detail=confidence_detail
+        roi = round((profit/total_games)*100, 1) if total_games > 0 else 0.0
+        win_pct = round((wins/total_games)*100, 1) if total_games > 0 else 0.0
+        record_str = f"{wins}-{losses}-{pushes}"
+        
+        # Recent History
+        recent = []
+        if not graded.empty:
+            last_wk = graded['week'].max()
+            recent_df = graded[graded['week'] == last_wk].sort_values('profit', ascending=False)
+            recent = recent_df.to_dict('records')
+            
+            # --- RECONSTRUCT HISTORY EDGES ---
+            # Run predictions for the past week to recover edges/lines
+            try:
+                hist_preds, _ = run_predictions(db['schedule'], db['base_stats'], db['injury_stats'], spread_model, total_model, ml_model, override_week=last_wk)
+                
+                # Create lookup: (team, week) -> {edge, line}
+                hist_map = {}
+                for p in hist_preds:
+                    # Key by pick team
+                    if 'pick' in p:
+                        hist_map[p['pick']] = p
+                
+                # Enrich recent history items
+                for r in recent:
+                    pick_team = r.get('pick_team')
+                    if pick_team in hist_map:
+                        data = hist_map[pick_team]
+                        r['edge_val'] = data.get('Edge')
+                        r['edge_str'] = f"(Edge +{data.get('Edge')})" if data.get('Edge') else ""
+                        
+                        # Calculate Pick Line
+                        # Vegas string is always 'Spread: <Away> <Line>'
+                        # e.g. 'Spread: DEN -13.5'
+                        try:
+                            # Vegas string is cleaner now (no prefixes)
+                            vegas_body = data['Vegas'] 
+                            away_team = data['away']
+                            type_bet = data.get('type', 'spread')
+                            
+                            if type_bet == 'spread':
+                                # Format: "DEN -13.5" or "-13.5" (if cleaner)
+                                # My cleanup kept "AwayTeam Line" e.g. "DEN -13.5" for active bets?
+                                # Let's check line 2130: f"{game['away_team']} {raw_away_spread:+}"
+                                # Yes, it includes Away Team.
+                                
+                                line_part = vegas_body.replace(away_team, "").strip() # "-13.5"
+                                line_val = float(line_part)
+                                home_spread_val = -1 * line_val
+                                r['home_spread_str'] = f"{home_spread_val:+}"
+                                
+                                if pick_team == away_team:
+                                    r['line_str'] = f"{line_val:+}"
+                                else:
+                                    r['line_str'] = f"{-line_val:+}" # Home Line
+                                    
+                            elif type_bet == 'total':
+                                # Format: "45.5"
+                                r['home_spread_str'] = f"T: {vegas_body}"
+                                r['line_str'] = f"{data.get('pick', '')} {vegas_body}"
+                                
+                            elif type_bet == 'moneyline':
+                                # Format: "-150"
+                                r['home_spread_str'] = f"{vegas_body}"
+                                r['line_str'] = f"{vegas_body}"
+
+                        except Exception as e:
+                            # print(f"Error parsing history line: {e}")
+                            r['line_str'] = ""
+                            r['home_spread_str'] = "-"
+
+                        if 'Action' in data and "ML" in data['Action']:
+                             r['line_str'] = "ML"
+            except Exception as e:
+                print(f"⚠️ Could not reconstruct history edge: {e}")
+
+            # Add opponent field
+            
+            # Add opponent field
+            for r in recent:
+                try:
+                    pick = str(r.get('pick_team', '')).strip()
+                    home = str(r.get('home', '')).strip()
+                    away = str(r.get('away', '')).strip()
+                    
+                    if pick == home:
+                        r['opponent'] = away
+                        r['is_home'] = True
+                    elif pick == away:
+                        r['opponent'] = home
+                        r['is_home'] = False
+                    else:
+                        # Fallback
+                        matchup = str(r.get('matchup', ''))
+                        if ' @ ' in matchup:
+                            teams = matchup.split(' @ ')
+                            if pick == teams[0]: # Pick is Away
+                                r['opponent'] = teams[1]
+                                r['is_home'] = False
+                            else:
+                                r['opponent'] = teams[0]
+                                r['is_home'] = True
+                        else:
+                            r['opponent'] = "OPP"
+                            r['is_home'] = True # Default
+                except Exception as e:
+                    print(f"Error parsing opponent for {r}: {e}")
+                    r['opponent'] = "OPP"
+                    r['is_home'] = True
+            
+        conf_level, conf_color, conf_detail = calculate_system_confidence(graded)
+        
+        # Determine Units Generated (Alpha)
+        alpha_units = round(profit, 2)
+        
+        # Generate Chart Data
+        chart_data = generate_chart_data(graded, n_bars=10)
+
+        # USE SPECIFIC TEMPLATE
+        template = env.get_template(template_filename)
+        
+        html_out = template.render(
+            active_bets=bets_list,
+            last_updated=datetime.now().strftime("%Y-%m-%d %H:%M UTC"),
+            roi=roi,
+            units=alpha_units,
+            record=record_str,
+            win_pct=win_pct,
+            history=recent,
+            chart_data=chart_data,
+            confidence_level=conf_level,
+            confidence_color=conf_color,
+            confidence_detail=conf_detail,
+            page_title=title,
+            model_name=model_name,
+            next_week=next_week_num, # Added next_week for Pulsar template
+            system_var_tolerance=SYS_VAR_TOLERANCE,
+            system_kelly_scalar=f"{SYS_KELLY_SCALAR}x",
+            system_liquidity_req=SYS_LIQUIDITY_REQ
+        )
+        
+        full_out_path = f"docs/{filename}"
+        with open(full_out_path, "w", encoding="utf-8") as f: f.write(html_out)
+        print(f"✅ Generated {filename} ({len(bets_list)} active signals)")
+        return roi, record_str, win_pct, alpha_units
+
+    # --- PARTITION HISTORY ---
+    if not final_hist.empty and 'type' in final_hist.columns:
+        orion_hist = final_hist[final_hist['type'] == 'spread']
+        pulsar_hist = final_hist[final_hist['type'] == 'total']
+        quasar_hist = final_hist[final_hist['type'] == 'moneyline']
+    else:
+        # Fallback / Legacy behavior
+        orion_hist = final_hist 
+        pulsar_hist = pd.DataFrame(columns=final_hist.columns)
+        quasar_hist = pd.DataFrame(columns=final_hist.columns)
+
+    # --- GENERATE PAGES ---
+    # 1. ORION (Spread)
+    orion_roi, orion_rec, orion_pct, orion_alpha = render_page(
+        "spread.html", 
+        "PROTOCOL 705 // ORION", 
+        "ORION", 
+        spread_bets, 
+        orion_hist,
+        "orion.html"
     )
     
-    with open(DOCS_PATH, "w", encoding="utf-8") as f: f.write(html)
-    full_path = os.path.abspath(DOCS_PATH)
-    print(f"✅ Dashboard Updated: {full_path}")
-    webbrowser.open(f"file://{full_path}")
+    # 2. PULSAR (Totals)
+    pulsar_roi, pulsar_rec, pulsar_pct, pulsar_alpha = render_page(
+        "totals.html", 
+        "PROTOCOL 705 // PULSAR", 
+        "PULSAR", 
+        total_bets, 
+        pulsar_hist,
+        "pulsar.html"
+    )
+    
+    # 3. QUASAR (Moneyline)
+    quasar_roi, quasar_rec, quasar_pct, quasar_alpha = render_page(
+        "moneyline.html", 
+        "PROTOCOL 705 // QUASAR", 
+        "QUASAR", 
+        ml_bets, 
+        quasar_hist,
+        "quasar.html"
+    )
+    
+    # 4. INDEX (REMOVED - Replaced by Selector)
+    # render_page("index.html"...) - DEPRECATED
+
+    # --- SELECTOR GENERATION ---
+    print("Generating Selector Page...")
+    selector_template = env.get_template("selector.html")
+    
+    # Calculate Upcoming Alpha (Sum of units on active bets)
+    upcoming_orion = sum([x['units'] for x in spread_bets])
+    upcoming_pulsar = sum([x['units'] for x in total_bets])
+    upcoming_quasar = sum([x['units'] for x in ml_bets])
+
+    # Calculate Orion Stats for Selector
+    orion_graded = orion_hist[orion_hist['status'] == 'GRADED']
+    orion_wins = len(orion_graded[orion_graded['result'] == 'WIN'])
+    orion_losses = len(orion_graded[orion_graded['result'] == 'LOSS'])
+    orion_pushes = len(orion_graded[orion_graded['result'] == 'PUSH'])
+    orion_total = orion_wins + orion_losses + orion_pushes
+    orion_profit = orion_graded['profit'].sum()
+    orion_roi = round((orion_profit/orion_total)*100, 1) if orion_total > 0 else 0.0
+    
+    # L30 Stats (Orion)
+    orion_l30 = orion_graded.tail(30)
+    orion_l30_wins = len(orion_l30[orion_l30['result'] == 'WIN'])
+    orion_l30_losses = len(orion_l30[orion_l30['result'] == 'LOSS'])
+    orion_l30_pushes = len(orion_l30[orion_l30['result'] == 'PUSH'])
+    orion_l30_total = orion_l30_wins + orion_l30_losses + orion_l30_pushes
+    orion_l30_record = f"{orion_l30_wins}-{orion_l30_losses}-{orion_l30_pushes}"
+    orion_l30_pct = round((orion_l30_wins/orion_l30_total)*100, 1) if orion_l30_total > 0 else 0.0
+    
+    # Pulsar Stats (Totals)
+    pulsar_graded = pulsar_hist[pulsar_hist['status'] == 'GRADED']
+    pulsar_wins = len(pulsar_graded[pulsar_graded['result'] == 'WIN'])
+    pulsar_losses = len(pulsar_graded[pulsar_graded['result'] == 'LOSS'])
+    pulsar_pushes = len(pulsar_graded[pulsar_graded['result'] == 'PUSH'])
+    pulsar_total = pulsar_wins + pulsar_losses + pulsar_pushes
+    pulsar_profit = pulsar_graded['profit'].sum()
+    pulsar_roi = round((pulsar_profit/pulsar_total)*100, 1) if pulsar_total > 0 else 0.0
+
+    # L30 Stats (Pulsar)
+    pulsar_l30 = pulsar_graded.tail(30)
+    pulsar_l30_wins = len(pulsar_l30[pulsar_l30['result'] == 'WIN'])
+    pulsar_l30_losses = len(pulsar_l30[pulsar_l30['result'] == 'LOSS'])
+    pulsar_l30_pushes = len(pulsar_l30[pulsar_l30['result'] == 'PUSH'])
+    pulsar_l30_total = pulsar_l30_wins + pulsar_l30_losses + pulsar_l30_pushes
+    pulsar_l30_record = f"{pulsar_l30_wins}-{pulsar_l30_losses}-{pulsar_l30_pushes}"
+    pulsar_l30_pct = round((pulsar_l30_wins/pulsar_l30_total)*100, 1) if pulsar_l30_total > 0 else 0.0
+    
+    # Quasar Stats (Moneyline)
+    quasar_graded = quasar_hist[quasar_hist['status'] == 'GRADED']
+    quasar_wins = len(quasar_graded[quasar_graded['result'] == 'WIN'])
+    quasar_losses = len(quasar_graded[quasar_graded['result'] == 'LOSS'])
+    quasar_pushes = len(quasar_graded[quasar_graded['result'] == 'PUSH'])
+    quasar_total = quasar_wins + quasar_losses + quasar_pushes
+    quasar_profit = quasar_graded['profit'].sum()
+    quasar_roi = round((quasar_profit/quasar_total)*100, 1) if quasar_total > 0 else 0.0
+
+    # L30 Stats (Quasar)
+    quasar_l30 = quasar_graded.tail(30)
+    quasar_l30_wins = len(quasar_l30[quasar_l30['result'] == 'WIN'])
+    quasar_l30_losses = len(quasar_l30[quasar_l30['result'] == 'LOSS'])
+    quasar_l30_pushes = len(quasar_l30[quasar_l30['result'] == 'PUSH'])
+    quasar_l30_total = quasar_l30_wins + quasar_l30_losses + quasar_l30_pushes
+    quasar_l30_record = f"{quasar_l30_wins}-{quasar_l30_losses}-{quasar_l30_pushes}"
+    quasar_l30_pct = round((quasar_l30_wins/quasar_l30_total)*100, 1) if quasar_l30_total > 0 else 0.0
+    
+    selector_html = selector_template.render(
+        next_week=next_week_num,
+        season=CURRENT_SEASON,
+        
+        orion_alpha=round(upcoming_orion, 1),
+        orion_record=orion_rec,
+        orion_win_pct=orion_pct,
+        orion_roi=orion_roi,
+        orion_l30_record=orion_l30_record,
+        orion_l30_pct=orion_l30_pct,
+        
+        pulsar_alpha=round(upcoming_pulsar, 1),
+        pulsar_record=pulsar_rec,
+        pulsar_win_pct=pulsar_pct,
+        pulsar_roi=pulsar_roi,
+        pulsar_l30_record=pulsar_l30_record,
+        pulsar_l30_pct=pulsar_l30_pct,
+        
+        quasar_alpha=round(upcoming_quasar, 1),
+        quasar_record=quasar_rec,
+        quasar_win_pct=quasar_pct,
+        quasar_roi=quasar_roi,
+        quasar_l30_record=quasar_l30_record,
+        quasar_l30_pct=quasar_l30_pct
+    )
+    
+    SELECTOR_PATH = "docs/selector.html"
+    with open(SELECTOR_PATH, "w", encoding="utf-8") as f: f.write(selector_html)
+    print(f"✅ Selector Page Updated: {os.path.abspath(SELECTOR_PATH)}")
+
+    # --- ASSETS ---
+    try:
+        shutil.copy("data/betting_history.csv", "docs/ledger.csv")
+        print("✅ Ledger copied to docs/ledger.csv")
+    except Exception as e:
+        print(f"⚠️ Could not copy ledger: {e}")
+
+    webbrowser.open(f"file://{os.path.abspath(SELECTOR_PATH)}")

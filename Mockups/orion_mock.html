@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORION // PREDICTIVE TERMINAL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'void': '#030304',
+                        'surface': '#0A0A0C',
+                        'surface-highlight': '#121216',
+                        'orion-blue': '#3B82F6', 
+                        'orion-cyan': '#06B6D4',
+                        'electric': '#60A5FA',
+                        'success': '#10B981',
+                        'critical': '#EF4444',
+                        'sub': '#52525B'
+                    },
+                    fontFamily: {
+                        'sans': ['"Rajdhani"', 'sans-serif'],
+                        'body': ['"Inter"', 'sans-serif'],
+                        'mono': ['"JetBrains Mono"', 'monospace'],
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(to right, #1f2937 1px, transparent 1px), linear-gradient(to bottom, #1f2937 1px, transparent 1px)",
+                        'radial-glow': "radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%)"
+                    },
+                    animation: {
+                        'scanline': 'scanline 8s linear infinite',
+                        'pulse-glow': 'pulse-glow 4s ease-in-out infinite',
+                        'appear': 'appear 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        scanline: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100vh)' }
+                        },
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: 0.5, transform: 'scale(1)' },
+                            '50%': { opacity: 1, transform: 'scale(1.05)' }
+                        },
+                        appear: {
+                            '0%': { opacity: 0, transform: 'translateY(20px)' },
+                            '100%': { opacity: 1, transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #030304;
+            color: #E4E4E7;
+            cursor: crosshair;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Background */
+        .bg-grid {
+            background-size: 40px 40px;
+            mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+            opacity: 0.1;
+        }
+
+        #starfield {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;
+        }
+
+        /* Glass Panels */
+        .glass-panel {
+            background: rgba(10, 10, 12, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 0 1px rgba(0,0,0,1), 0 4px 20px rgba(0,0,0,0.5);
+        }
+        
+        .glass-panel:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            background: rgba(18, 18, 22, 0.8);
+        }
+
+        /* Text Utilities */
+        .text-glow { text-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+        .text-glow-green { text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #030304; }
+        ::-webkit-scrollbar-thumb { background: #3B82F6; border-radius: 2px; }
+
+        /* Loader Line */
+        .loading-line {
+            width: 100%; height: 1px;
+            background: linear-gradient(90deg, transparent, #3B82F6, transparent);
+            position: absolute; top: 0; left: 0;
+            animation: loading 2s ease-in-out infinite;
+        }
+        @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+    </style>
+</head>
+<body class="min-h-screen relative font-body selection:bg-orion-blue selection:text-white">
+
+    <!-- BACKGROUND LAYERS -->
+    <canvas id="starfield"></canvas>
+    <div class="fixed inset-0 bg-grid pointer-events-none z-0"></div>
+    <div class="fixed inset-0 bg-radial-glow pointer-events-none z-0"></div>
+    
+    <!-- NAVIGATION / HUD -->
+    <nav class="fixed top-0 w-full z-50 border-b border-white/10 bg-void/80 backdrop-blur-md">
+        <div class="max-w-[1600px] mx-auto px-6 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-orion-blue rounded-sm animate-pulse"></div>
+                    <span class="font-sans font-bold text-xl tracking-widest text-white">ORION</span>
+                    <span class="text-[10px] font-mono text-sub px-1.5 py-0.5 border border-white/10 rounded">V2.0.2</span>
+                </div>
+                <div class="hidden md:flex gap-1">
+                    <div class="w-1 h-4 bg-orion-blue/20"></div>
+                    <div class="w-1 h-4 bg-orion-blue/40"></div>
+                    <div class="w-1 h-4 bg-orion-blue/60"></div>
+                    <div class="w-1 h-4 bg-orion-blue"></div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-8 font-mono text-xs text-sub">
+                <div class="hidden md:block">LAT: 40.7128° N // LON: 74.0060° W</div>
+                <div class="text-orion-cyan">SYSTEM OPTIMAL</div>
+                <div id="clock">12:00:00 UTC</div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="relative z-10 pt-24 pb-20 px-6 max-w-[1600px] mx-auto">
+        
+        <!-- HEADER SECTION -->
+        <header class="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-20 animate-appear">
+            <div class="lg:col-span-7">
+                <div class="flex items-center gap-3 mb-6 text-orion-blue">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <span class="font-mono text-xs tracking-[0.3em] uppercase">Predictive Alpha Generator</span>
+                </div>
+                <h1 class="font-sans font-medium text-6xl md:text-8xl leading-[0.9] tracking-tighter text-white mb-6">
+                    HUNT THE <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-orion-blue to-white">INSIGHT.</span>
+                </h1>
+                <p class="text-zinc-400 max-w-xl text-lg leading-relaxed font-light">
+                    Autonomous spread intelligence utilizing high-frequency data modeling. 
+                    Targeting inefficiencies in Week 17 NFL markets with precision variance analysis.
+                </p>
+                <div class="mt-8 flex gap-4">
+                    <button class="px-8 py-3 bg-white text-black font-mono font-bold text-xs uppercase tracking-widest hover:bg-orion-blue transition-colors">
+                        Download Ledger
+                    </button>
+                    <button class="px-8 py-3 border border-white/20 text-white font-mono font-bold text-xs uppercase tracking-widest hover:bg-white/5 transition-colors">
+                        Model Params
+                    </button>
+                </div>
+            </div>
+
+            <!-- PRIMARY KPI -->
+            <div class="lg:col-span-5 flex flex-col justify-end">
+                <div class="glass-panel p-8 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-50">
+                        <svg class="w-6 h-6 text-orion-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                    </div>
+                    <div class="font-mono text-xs text-sub uppercase tracking-widest mb-2">Net Alpha Generated</div>
+                    <div class="flex items-baseline gap-4">
+                        <span class="font-sans font-bold text-7xl text-white text-glow">+21.28u</span>
+                        <span class="text-success font-mono text-sm">▲ 2.4% this week</span>
+                    </div>
+                    
+                    <!-- Micro Chart -->
+                    <div class="mt-8 flex items-end gap-1 h-12 w-full opacity-50 group-hover:opacity-100 transition-opacity">
+                        <div class="w-full bg-white/10 h-[20%]"></div>
+                        <div class="w-full bg-white/10 h-[40%]"></div>
+                        <div class="w-full bg-orion-blue h-[60%] shadow-[0_0_10px_#3B82F6]"></div>
+                        <div class="w-full bg-white/10 h-[50%]"></div>
+                        <div class="w-full bg-white/10 h-[30%]"></div>
+                        <div class="w-full bg-white/10 h-[45%]"></div>
+                        <div class="w-full bg-white/10 h-[80%]"></div>
+                        <div class="w-full bg-orion-blue h-[90%] shadow-[0_0_10px_#3B82F6]"></div>
+                        <div class="w-full bg-white/10 h-[70%]"></div>
+                        <div class="w-full bg-white/10 h-[85%]"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mt-4">
+                    <div class="glass-panel p-4 text-center hover:translate-y-[-2px] transition-transform">
+                        <div class="text-[10px] font-mono text-sub uppercase">ROI</div>
+                        <div class="text-2xl font-sans font-bold text-white">12.2%</div>
+                    </div>
+                    <div class="glass-panel p-4 text-center hover:translate-y-[-2px] transition-transform">
+                        <div class="text-[10px] font-mono text-sub uppercase">Win Rate</div>
+                        <div class="text-2xl font-sans font-bold text-white">56.3%</div>
+                    </div>
+                    <div class="glass-panel p-4 text-center hover:translate-y-[-2px] transition-transform">
+                        <div class="text-[10px] font-mono text-sub uppercase">Record</div>
+                        <div class="text-2xl font-sans font-bold text-white">98-76</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ACTIVE TARGETS -->
+        <section class="mb-32 animate-appear" style="animation-delay: 200ms;">
+            <div class="flex items-end justify-between mb-8 pb-4 border-b border-white/10">
+                <h2 class="font-sans font-bold text-3xl text-white tracking-tight">ACTIVE TARGETS <span class="text-orion-blue text-lg align-top">/// W17</span></h2>
+                <div class="flex items-center gap-2 font-mono text-[10px] text-orion-cyan">
+                    <div class="w-1.5 h-1.5 rounded-full bg-orion-cyan animate-pulse"></div>
+                    SCANNING LIVE MARKETS
+                </div>
+            </div>
+
+            <!-- Header Row -->
+            <div class="hidden md:grid grid-cols-12 gap-4 px-6 py-2 text-[10px] font-mono text-sub uppercase tracking-wider">
+                <div class="col-span-4">Instrument</div>
+                <div class="col-span-2 text-right">Market / Fair</div>
+                <div class="col-span-3 text-center">Edge Variance</div>
+                <div class="col-span-1 text-center">Confidence</div>
+                <div class="col-span-2 text-right">Execution</div>
+            </div>
+
+            <div class="space-y-3">
+
+                <!-- CARD COMPONENT -->
+                <!-- DEN @ KC -->
+                <div class="glass-panel p-0 transition-all duration-300 hover:scale-[1.005] group">
+                    <div class="relative grid grid-cols-1 md:grid-cols-12 items-center p-5 gap-6">
+                        <div class="loading-line opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        
+                        <!-- Matchup -->
+                        <div class="col-span-4">
+                            <div class="flex items-center gap-4">
+                                <div class="font-sans font-bold text-3xl text-white">DEN</div>
+                                <span class="text-xs font-mono text-sub">@</span>
+                                <div class="font-sans font-bold text-3xl text-white">KC</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-orion-blue mt-1">NFL WEEK 17</div>
+                        </div>
+
+                        <!-- Lines -->
+                        <div class="col-span-2 md:text-right font-mono text-xs">
+                            <div class="text-sub mb-1">MKT: <span class="text-zinc-400">DEN -13.5</span></div>
+                            <div class="text-sub">FVR: <span class="text-orion-blue font-bold">DEN -0.5</span></div>
+                        </div>
+
+                        <!-- Edge Viz -->
+                        <div class="col-span-3 px-4">
+                            <div class="flex justify-between text-[10px] font-mono text-sub mb-1">
+                                <span>DELTA</span>
+                                <span class="text-orion-blue">+13.0</span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1.5 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-orion-blue to-orion-cyan w-[90%] relative">
+                                    <div class="absolute right-0 top-0 bottom-0 w-1 bg-white animate-pulse"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Confidence -->
+                        <div class="col-span-1 text-center">
+                            <span class="inline-block px-2 py-1 bg-orion-blue/10 border border-orion-blue/20 text-orion-blue text-[10px] font-mono font-bold">STRONG</span>
+                        </div>
+
+                        <!-- Button -->
+                        <div class="col-span-2 text-right">
+                            <button class="w-full py-3 bg-white text-black font-mono text-[10px] font-bold uppercase hover:bg-orion-cyan transition-colors">
+                                Bet KC (2.0u)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TB @ MIA -->
+                <div class="glass-panel p-0 transition-all duration-300 hover:scale-[1.005] group">
+                    <div class="relative grid grid-cols-1 md:grid-cols-12 items-center p-5 gap-6">
+                        <div class="loading-line opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="col-span-4">
+                            <div class="flex items-center gap-4">
+                                <div class="font-sans font-bold text-3xl text-white">TB</div>
+                                <span class="text-xs font-mono text-sub">@</span>
+                                <div class="font-sans font-bold text-3xl text-white">MIA</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-orion-blue mt-1">NFL WEEK 17</div>
+                        </div>
+                        <div class="col-span-2 md:text-right font-mono text-xs">
+                            <div class="text-sub mb-1">MKT: <span class="text-zinc-400">TB -6.0</span></div>
+                            <div class="text-sub">FVR: <span class="text-orion-blue font-bold">TB +0.6</span></div>
+                        </div>
+                        <div class="col-span-3 px-4">
+                            <div class="flex justify-between text-[10px] font-mono text-sub mb-1">
+                                <span>DELTA</span>
+                                <span class="text-orion-blue">+6.6</span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1.5 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-orion-blue to-orion-cyan w-[65%]"></div>
+                            </div>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <span class="inline-block px-2 py-1 bg-orion-blue/10 border border-orion-blue/20 text-orion-blue text-[10px] font-mono font-bold">STRONG</span>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <button class="w-full py-3 bg-white text-black font-mono text-[10px] font-bold uppercase hover:bg-orion-cyan transition-colors">
+                                Bet MIA (1.9u)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DAL @ WAS -->
+                <div class="glass-panel p-0 transition-all duration-300 hover:scale-[1.005] group">
+                    <div class="relative grid grid-cols-1 md:grid-cols-12 items-center p-5 gap-6">
+                        <div class="loading-line opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="col-span-4">
+                            <div class="flex items-center gap-4">
+                                <div class="font-sans font-bold text-3xl text-white">DAL</div>
+                                <span class="text-xs font-mono text-sub">@</span>
+                                <div class="font-sans font-bold text-3xl text-white">WAS</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-orion-blue mt-1">NFL WEEK 17</div>
+                        </div>
+                        <div class="col-span-2 md:text-right font-mono text-xs">
+                            <div class="text-sub mb-1">MKT: <span class="text-zinc-400">DAL -8.5</span></div>
+                            <div class="text-sub">FVR: <span class="text-orion-blue font-bold">DAL -2.9</span></div>
+                        </div>
+                        <div class="col-span-3 px-4">
+                            <div class="flex justify-between text-[10px] font-mono text-sub mb-1">
+                                <span>DELTA</span>
+                                <span class="text-orion-blue">+5.6</span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1.5 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-orion-blue to-orion-cyan w-[55%]"></div>
+                            </div>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <span class="inline-block px-2 py-1 bg-orion-blue/10 border border-orion-blue/20 text-orion-blue text-[10px] font-mono font-bold">STRONG</span>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <button class="w-full py-3 bg-white text-black font-mono text-[10px] font-bold uppercase hover:bg-orion-cyan transition-colors">
+                                Bet WAS (1.6u)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DET @ MIN -->
+                <div class="glass-panel p-0 transition-all duration-300 hover:scale-[1.005] group">
+                    <div class="relative grid grid-cols-1 md:grid-cols-12 items-center p-5 gap-6">
+                        <div class="col-span-4">
+                            <div class="flex items-center gap-4">
+                                <div class="font-sans font-bold text-3xl text-white">DET</div>
+                                <span class="text-xs font-mono text-sub">@</span>
+                                <div class="font-sans font-bold text-3xl text-white">MIN</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-orion-blue mt-1">NFL WEEK 17</div>
+                        </div>
+                        <div class="col-span-2 md:text-right font-mono text-xs">
+                            <div class="text-sub mb-1">MKT: <span class="text-zinc-400">DET -7.0</span></div>
+                            <div class="text-sub">FVR: <span class="text-orion-blue font-bold">DET -1.7</span></div>
+                        </div>
+                        <div class="col-span-3 px-4">
+                            <div class="flex justify-between text-[10px] font-mono text-sub mb-1">
+                                <span>DELTA</span>
+                                <span class="text-orion-blue">+5.3</span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1.5 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-orion-blue to-orion-cyan w-[50%]"></div>
+                            </div>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <span class="inline-block px-2 py-1 bg-orion-blue/10 border border-orion-blue/20 text-orion-blue text-[10px] font-mono font-bold">STRONG</span>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <button class="w-full py-3 bg-white text-black font-mono text-[10px] font-bold uppercase hover:bg-orion-cyan transition-colors">
+                                Bet MIN (1.5u)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                 <!-- JAX @ IND -->
+                 <div class="glass-panel p-0 transition-all duration-300 hover:scale-[1.005] group">
+                    <div class="relative grid grid-cols-1 md:grid-cols-12 items-center p-5 gap-6">
+                        <div class="col-span-4">
+                            <div class="flex items-center gap-4">
+                                <div class="font-sans font-bold text-3xl text-white">JAX</div>
+                                <span class="text-xs font-mono text-sub">@</span>
+                                <div class="font-sans font-bold text-3xl text-white">IND</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-orion-blue mt-1">NFL WEEK 17</div>
+                        </div>
+                        <div class="col-span-2 md:text-right font-mono text-xs">
+                            <div class="text-sub mb-1">MKT: <span class="text-zinc-400">JAX -5.5</span></div>
+                            <div class="text-sub">FVR: <span class="text-orion-blue font-bold">JAX -0.2</span></div>
+                        </div>
+                        <div class="col-span-3 px-4">
+                            <div class="flex justify-between text-[10px] font-mono text-sub mb-1">
+                                <span>DELTA</span>
+                                <span class="text-orion-blue">+5.3</span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1.5 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-orion-blue to-orion-cyan w-[50%]"></div>
+                            </div>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <span class="inline-block px-2 py-1 bg-orion-blue/10 border border-orion-blue/20 text-orion-blue text-[10px] font-mono font-bold">STRONG</span>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <button class="w-full py-3 bg-white text-black font-mono text-[10px] font-bold uppercase hover:bg-orion-cyan transition-colors">
+                                Bet IND (1.5u)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                 <!-- NE @ NYJ -->
+                 <div class="glass-panel p-0 transition-all duration-300 hover:scale-[1.005] group">
+                    <div class="relative grid grid-cols-1 md:grid-cols-12 items-center p-5 gap-6">
+                        <div class="col-span-4">
+                            <div class="flex items-center gap-4">
+                                <div class="font-sans font-bold text-3xl text-white">NE</div>
+                                <span class="text-xs font-mono text-sub">@</span>
+                                <div class="font-sans font-bold text-3xl text-white">NYJ</div>
+                            </div>
+                        </div>
+                        <div class="col-span-2 md:text-right font-mono text-xs">
+                            <div class="text-sub mb-1">MKT: <span class="text-zinc-400">NE -13.5</span></div>
+                            <div class="text-sub">FVR: <span class="text-orion-blue font-bold">NE -8.4</span></div>
+                        </div>
+                        <div class="col-span-3 px-4">
+                            <div class="flex justify-between text-[10px] font-mono text-sub mb-1">
+                                <span>DELTA</span>
+                                <span class="text-orion-blue">+5.1</span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1.5 overflow-hidden">
+                                <div class="h-full bg-white/30 w-[45%]"></div>
+                            </div>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <span class="inline-block px-2 py-1 bg-white/5 border border-white/10 text-white text-[10px] font-mono font-bold">SOLID</span>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <button class="w-full py-3 bg-zinc-800 text-white font-mono text-[10px] font-bold uppercase hover:bg-zinc-700 transition-colors">
+                                Bet NYJ (1.4u)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PHI @ BUF -->
+                <div class="glass-panel p-0 transition-all duration-300 hover:scale-[1.005] group opacity-80">
+                    <div class="relative grid grid-cols-1 md:grid-cols-12 items-center p-5 gap-6">
+                        <div class="col-span-4">
+                            <div class="flex items-center gap-4">
+                                <div class="font-sans font-bold text-3xl text-zinc-300">PHI</div>
+                                <span class="text-xs font-mono text-sub">@</span>
+                                <div class="font-sans font-bold text-3xl text-zinc-300">BUF</div>
+                            </div>
+                        </div>
+                        <div class="col-span-2 md:text-right font-mono text-xs">
+                            <div class="text-sub mb-1">MKT: <span class="text-zinc-500">PHI +1.5</span></div>
+                            <div class="text-sub">FVR: <span class="text-zinc-300">PHI +4.3</span></div>
+                        </div>
+                        <div class="col-span-3 px-4">
+                            <div class="flex justify-between text-[10px] font-mono text-sub mb-1">
+                                <span>DELTA</span>
+                                <span class="text-white">+2.8</span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1.5 overflow-hidden">
+                                <div class="h-full bg-white/20 w-[20%]"></div>
+                            </div>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <span class="inline-block px-2 py-1 text-sub text-[10px] font-mono font-bold">LEAN</span>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <button class="w-full py-3 border border-white/10 text-sub font-mono text-[10px] font-bold uppercase hover:text-white transition-colors">
+                                Bet BUF (0.7u)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NYG @ LV -->
+                <div class="glass-panel p-0 transition-all duration-300 hover:scale-[1.005] group opacity-80">
+                    <div class="relative grid grid-cols-1 md:grid-cols-12 items-center p-5 gap-6">
+                        <div class="col-span-4">
+                            <div class="flex items-center gap-4">
+                                <div class="font-sans font-bold text-3xl text-zinc-300">NYG</div>
+                                <span class="text-xs font-mono text-sub">@</span>
+                                <div class="font-sans font-bold text-3xl text-zinc-300">LV</div>
+                            </div>
+                        </div>
+                        <div class="col-span-2 md:text-right font-mono text-xs">
+                            <div class="text-sub mb-1">MKT: <span class="text-zinc-500">NYG -2.5</span></div>
+                            <div class="text-sub">FVR: <span class="text-zinc-300">NYG -0.1</span></div>
+                        </div>
+                        <div class="col-span-3 px-4">
+                            <div class="flex justify-between text-[10px] font-mono text-sub mb-1">
+                                <span>DELTA</span>
+                                <span class="text-white">+2.4</span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1.5 overflow-hidden">
+                                <div class="h-full bg-white/20 w-[18%]"></div>
+                            </div>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <span class="inline-block px-2 py-1 text-sub text-[10px] font-mono font-bold">LEAN</span>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <button class="w-full py-3 border border-white/10 text-sub font-mono text-[10px] font-bold uppercase hover:text-white transition-colors">
+                                Bet LV (0.5u)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PIT @ CLE (NO PLAY EXAMPLE) -->
+                <div class="p-5 border-t border-white/5 grid grid-cols-1 md:grid-cols-12 items-center gap-6 opacity-40 hover:opacity-60 transition-opacity">
+                     <div class="col-span-4 flex items-center gap-4 grayscale">
+                        <div class="font-sans font-bold text-2xl text-zinc-500">PIT</div>
+                        <span class="text-xs font-mono text-sub">@</span>
+                        <div class="font-sans font-bold text-2xl text-zinc-500">CLE</div>
+                    </div>
+                    <div class="col-span-2 md:text-right font-mono text-xs text-sub">
+                        MKT: -3.5 // FVR: -2.5
+                    </div>
+                    <div class="col-span-3 px-4">
+                        <div class="w-full bg-white/5 h-1"></div>
+                    </div>
+                    <div class="col-span-1 text-center text-[10px] font-mono text-sub">NO EDGE</div>
+                    <div class="col-span-2 text-right">
+                        <span class="text-[10px] font-mono text-sub">PASSED</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- HISTORY / LEDGER -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-appear" style="animation-delay: 400ms;">
+            
+            <!-- Ledger Table -->
+            <div>
+                <h3 class="font-sans font-bold text-xl text-white mb-6 uppercase tracking-wider">Previous Cycle <span class="text-sub text-sm">/ Week 16</span></h3>
+                <div class="glass-panel overflow-hidden">
+                    <table class="w-full text-left font-mono text-xs">
+                        <thead class="bg-white/5 text-sub uppercase">
+                            <tr>
+                                <th class="p-4 font-normal">Execution</th>
+                                <th class="p-4 font-normal text-right">Outcome</th>
+                                <th class="p-4 font-normal text-right">P&L</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5 text-zinc-400">
+                            <!-- Wins -->
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-white font-bold">LA</span> @ ARI</td>
+                                <td class="p-4 text-right text-orion-blue">TARGET HIT</td>
+                                <td class="p-4 text-right text-white">+1.8u</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-white font-bold">PIT</span> @ BAL</td>
+                                <td class="p-4 text-right text-orion-blue">TARGET HIT</td>
+                                <td class="p-4 text-right text-white">+0.6u</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-white font-bold">TEN</span> @ CLE</td>
+                                <td class="p-4 text-right text-orion-blue">TARGET HIT</td>
+                                <td class="p-4 text-right text-white">+0.5u</td>
+                            </tr>
+                             <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-white font-bold">MIA</span> @ NYJ</td>
+                                <td class="p-4 text-right text-orion-blue">TARGET HIT</td>
+                                <td class="p-4 text-right text-white">+0.3u</td>
+                            </tr>
+                             <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-white font-bold">GB</span> vs CHI</td>
+                                <td class="p-4 text-right text-orion-blue">TARGET HIT</td>
+                                <td class="p-4 text-right text-white">+0.1u</td>
+                            </tr>
+
+                            <!-- Losses -->
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-sub">DEN</span> @ LV</td>
+                                <td class="p-4 text-right text-critical">MISS</td>
+                                <td class="p-4 text-right text-sub">-0.1u</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-sub">PHI</span> @ LAC</td>
+                                <td class="p-4 text-right text-critical">MISS</td>
+                                <td class="p-4 text-right text-sub">-0.3u</td>
+                            </tr>
+                             <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-sub">KC</span> vs HOU</td>
+                                <td class="p-4 text-right text-critical">MISS</td>
+                                <td class="p-4 text-right text-sub">-0.5u</td>
+                            </tr>
+                             <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-sub">DAL</span> @ DET</td>
+                                <td class="p-4 text-right text-critical">MISS</td>
+                                <td class="p-4 text-right text-sub">-1.0u</td>
+                            </tr>
+                             <tr class="hover:bg-white/5 transition-colors">
+                                <td class="p-4"><span class="text-sub">WAS</span> @ MIN</td>
+                                <td class="p-4 text-right text-critical">MISS</td>
+                                <td class="p-4 text-right text-sub">-2.0u</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Terminal Info -->
+            <div class="flex flex-col justify-between">
+                <div>
+                     <h3 class="font-sans font-bold text-xl text-white mb-6 uppercase tracking-wider">System Parameters</h3>
+                     <div class="glass-panel p-6 space-y-6">
+                        <div>
+                            <div class="flex justify-between text-xs font-mono text-sub mb-2">
+                                <span>VARIANCE TOLERANCE</span>
+                                <span>LOW</span>
+                            </div>
+                            <div class="w-full bg-zinc-900 h-1"><div class="w-1/4 bg-orion-blue h-full"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-mono text-sub mb-2">
+                                <span>KELLY CRITERION SCALAR</span>
+                                <span>0.25x</span>
+                            </div>
+                            <div class="w-full bg-zinc-900 h-1"><div class="w-1/3 bg-orion-blue h-full"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-mono text-sub mb-2">
+                                <span>MARKET LIQUIDITY REQ</span>
+                                <span>HIGH</span>
+                            </div>
+                            <div class="w-full bg-zinc-900 h-1"><div class="w-3/4 bg-orion-blue h-full"></div></div>
+                        </div>
+                     </div>
+                </div>
+
+                <div class="mt-8 border-t border-white/10 pt-8">
+                    <p class="font-mono text-[10px] text-zinc-600 uppercase leading-relaxed">
+                        ORION ALGORITHMIC TRADING SYSTEMS INC.<br>
+                        EST. 2024 // NEW YORK, NY<br>
+                        TERMINAL ID: 705-ALPHA
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toISOString().split('T')[1].split('.')[0] + ' UTC';
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Constellation Canvas Effect
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let stars = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initStars();
+        }
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.2;
+                this.vy = (Math.random() - 0.5) * 0.2;
+                this.radius = Math.random() * 1.5;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if(this.x < 0) this.x = width;
+                if(this.x > width) this.x = 0;
+                if(this.y < 0) this.y = height;
+                if(this.y > height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.5 + 0.1})`;
+                ctx.fill();
+            }
+        }
+
+        function initStars() {
+            stars = [];
+            for(let i = 0; i < 150; i++) stars.push(new Star());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw connections
+            ctx.lineWidth = 0.5;
+            for(let i = 0; i < stars.length; i++) {
+                stars[i].update();
+                stars[i].draw();
+                
+                for(let j = i + 1; j < stars.length; j++) {
+                    const dx = stars[i].x - stars[j].x;
+                    const dy = stars[i].y - stars[j].y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if(dist < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(stars[i].x, stars[i].y);
+                        ctx.lineTo(stars[j].x, stars[j].y);
+                        ctx.strokeStyle = `rgba(59, 130, 246, ${1 - dist/100})`;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>

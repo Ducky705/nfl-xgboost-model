@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} // ORION</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;800&family=Space+Grotesk:wght@300;500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'void': '#050505',
+                        'panel': '#0A0A0A',
+                        'border-dim': '#1F1F1F',
+                        'orion-blue': '#00F0FF', // Electric Blue (Orion Main)
+                        'orion-cyan': '#008B9E', // Orion Dim
+                        'pulsar-purple': '#D946EF', // Pulsar Purple (Main)
+                        'pulsar-dim': '#86198F', // Pulsar Dim
+                        'quasar-orange': '#FF4D00', // Quasar Orange (Main)
+                        'quasar-dim': '#9A2E00', // Quasar Dim
+                        'warning-orange': '#FF4D00',
+                        'ghost': '#444444'
+                    },
+                    fontFamily: {
+                        'sans': ['"Space Grotesk"', 'sans-serif'],
+                        'mono': ['"JetBrains Mono"', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ticker': 'ticker 30s linear infinite',
+                        'enter': 'slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        ticker: {
+                            '0%': { transform: 'translateX(0)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        },
+                        slideUpFade: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #E2E2E2;
+            -webkit-font-smoothing: antialiased;
+        }
+
+
+
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0A0A0A;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, #1a1a1a 1px, transparent 1px),
+                linear-gradient(to bottom, #1a1a1a 1px, transparent 1px);
+        }
+
+        .signal-row {
+            cursor: pointer;
+            will-change: transform, opacity;
+        }
+
+        .signal-row:hover {
+            transform: scale(1.01) translateX(4px);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1);
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen relative overflow-x-hidden selection:bg-orion-blue selection:text-black">
+    <!-- BACKGROUND LAYERS -->
+    <canvas id="bg-canvas"></canvas>
+    <div class="fixed inset-0 bg-void z-[-2]"></div>
+    <div class="fixed inset-0 bg-grid-pattern opacity-[0.03] z-[-1]"></div>
+
+    <div class="noise"></div>
+
+    <!-- 1. THE TICKER TAPE -->
+    <div
+        class="fixed top-0 w-full bg-orion-blue text-black font-mono text-xs font-bold py-1 z-40 overflow-hidden whitespace-nowrap border-b border-orion-blue">
+        <div class="inline-block animate-ticker">
+            ORION SYSTEM ONLINE // LAST UPDATE: 2025-12-28 14:20 UTC // ROI: {{ roi }}% // RECORD: {{ record }} // ALPHA
+            GENERATED: {{ units }}u // SYSTEM LOAD: NOMINAL // MARKET VOLATILITY: DETECTED //
+            ORION SYSTEM ONLINE // LAST UPDATE: 2025-12-28 14:20 UTC // ROI: {{ roi }}% // RECORD: {{ record }} // ALPHA
+            GENERATED: {{ units }}u // SYSTEM LOAD: NOMINAL // MARKET VOLATILITY: DETECTED //
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="max-w-7xl mx-auto pt-16 pb-20 px-4 sm:px-6">
+
+        <!-- 2. HEADER SECTION -->
+        <header
+            class="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-border-dim pb-6 opacity-0 animate-enter"
+            style="animation-delay: 100ms;">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-3 h-3 bg-orion-blue rounded-full animate-pulse-slow"></div>
+                    <span class="font-mono text-xs text-orion-blue tracking-widest">LIVE SIGNAL</span>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-bold tracking-tighter text-white">ORION <span
+                        class="text-ghost">v3.2</span></h1>
+                <p class="font-mono text-zinc-500 mt-2 text-sm uppercase tracking-wide">XGBoost Algorithmic
+                    Infrastructure</p>
+            </div>
+            <div class="text-right mt-6 md:mt-0">
+                <div class="font-mono text-4xl font-bold text-orion-blue glow-text">{{ "+" if units > 0 else ""}}{{
+                    units }}u</div>
+                <div class="font-mono text-xs text-zinc-500 uppercase tracking-widest">Net Alpha Generated</div>
+            </div>
+        </header>
+
+        <!-- 3. THE BENTO GRID DASHBOARD -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-16">
+            <!-- Metric 1: ROI -->
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-orion-blue transition-all duration-500 group opacity-0 animate-enter"
+                style="animation-delay: 200ms;">
+                <div class="flex justify-between items-start">
+                    <span class="font-mono text-xs text-zinc-500 uppercase">Return on Investment</span>
+                    <svg class="w-4 h-4 text-orion-blue opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <div class="text-3xl font-bold text-white group-hover:text-orion-blue transition-colors">{{ roi }}%
+                </div>
+            </div>
+
+            <!-- Metric 2: Win Rate -->
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-orion-blue transition-all duration-500 group opacity-0 animate-enter"
+                style="animation-delay: 300ms;">
+                <div class="flex justify-between items-start">
+                    <span class="font-mono text-xs text-zinc-500 uppercase">Win Rate</span>
+                    <svg class="w-4 h-4 text-orion-blue opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                </div>
+                <div class="flex items-end gap-3">
+                    <div class="text-3xl font-bold text-white group-hover:text-orion-blue transition-colors">{{ win_pct
+                        }}%</div>
+                    <div class="h-1 flex-1 bg-zinc-800 mb-2 rounded-full overflow-hidden">
+                        <div class="h-full bg-white group-hover:bg-orion-blue transition-colors duration-500"
+                            style="width: {{ win_pct }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 3: Record -->
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-orion-blue transition-all duration-500 group opacity-0 animate-enter"
+                style="animation-delay: 400ms;">
+                <div class="flex justify-between items-start">
+                    <span class="font-mono text-xs text-zinc-500 uppercase">W - L - T</span>
+                    <svg class="w-4 h-4 text-orion-blue opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="text-2xl font-mono text-zinc-300 group-hover:text-orion-blue transition-colors">{{ record }}
+                </div>
+            </div>
+
+            <!-- Metric 4: System Confidence -->
+            <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 relative overflow-hidden hover:border-orion-blue transition-all duration-500 group opacity-0 animate-enter"
+                style="animation-delay: 500ms;">
+                <div class="flex justify-between items-start z-10 relative">
+                    <span class="font-mono text-xs text-zinc-500 uppercase">System Confidence <span
+                            class="text-zinc-600">{{ confidence_detail }}</span></span>
+                    <svg class="w-4 h-4 text-orion-blue opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div
+                    class="text-xl font-bold text-zinc-300 group-hover:text-orion-blue z-10 relative transition-colors">
+                    {{ confidence_level }}</div>
+                <!-- Visual Decoration: Wave -->
+                <svg class="absolute bottom-0 left-0 w-full h-20 text-zinc-900 z-0 group-hover:text-zinc-800 transition-colors duration-500"
+                    fill="currentColor" viewBox="0 0 1440 320" preserveAspectRatio="none">
+                    <path fill-opacity="1"
+                        d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,250.7C960,235,1056,181,1152,165.3C1248,149,1344,171,1392,181.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+                    </path>
+                </svg>
+            </div>
+        </section>
+
+        <!-- 4. THE TRADING DESK (Picks) -->
+        <main class="mb-20">
+            <div class="flex items-center justify-between mb-8 opacity-0 animate-enter" style="animation-delay: 600ms;">
+                <h2 class="font-sans text-2xl font-bold text-white tracking-tight">ACTIVE SIGNALS</h2>
+                <div class="flex gap-2" id="filter-buttons">
+                    <button data-filter="all"
+                        class="filter-btn active px-3 py-1 border border-orion-blue text-orion-blue font-mono text-[10px] uppercase cursor-pointer hover:bg-orion-blue hover:text-black transition-all duration-300">All</button>
+                    <button data-filter="strong"
+                        class="filter-btn px-3 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:bg-orion-blue hover:text-black hover:border-orion-blue transition-all duration-300">Strong
+                        Buy</button>
+                    <button data-filter="solid"
+                        class="filter-btn px-3 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:bg-orion-blue hover:text-black hover:border-orion-blue transition-all duration-300">Solid</button>
+                    <button data-filter="lean"
+                        class="filter-btn px-3 py-1 border border-zinc-700 text-zinc-500 font-mono text-[10px] uppercase cursor-pointer hover:bg-orion-blue hover:text-black hover:border-orion-blue transition-all duration-300">Lean</button>
+                </div>
+            </div>
+
+            <!-- Table Header (Styled as Grid) -->
+            <div class="hidden md:grid grid-cols-12 gap-6 text-xs font-mono text-zinc-500 uppercase tracking-wider mb-4 px-6 opacity-0 animate-enter"
+                style="animation-delay: 700ms;">
+                <div class="col-span-3">Matchup</div>
+                <div class="col-span-2 text-center">Market</div>
+                <div class="col-span-2 text-center">Fair Value</div>
+                <div class="col-span-2 text-center">Edge</div>
+                <div class="col-span-3 text-right">Action</div>
+            </div>
+
+            <!-- Dynamic Content Container -->
+            <div id="cards-container" class="space-y-3">
+
+                {% if active_bets|length == 0 %}
+                <div class="border border-zinc-800 border-dashed p-12 text-center font-mono text-zinc-600">
+                    SCANNING SECTOR... NO TARGETS ACQUIRED.
+                </div>
+                {% else %}
+                {% for game in active_bets %}
+
+                <!-- Using delay loop index for unique animation timing -->
+                <div data-confidence="{{ game.clean_conf|lower if game.clean_conf else 'lean' }}"
+                    class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
+                    style="animation-delay: {{ 800 + loop.index * 100 }}ms">
+
+                    <!-- Matchup -->
+                    <div class="col-span-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg font-bold text-white">{{ game.away }}</span>
+                            <span class="text-zinc-600 text-xs">@</span>
+                            <span class="text-lg font-bold text-white">{{ game.home }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Market Line -->
+                    <div class="col-span-2 text-center">
+                        <div class="font-mono text-lg text-zinc-400">{{ game.Vegas }}</div>
+                    </div>
+
+                    <!-- Model Line -->
+                    <div class="col-span-2 text-center">
+                        <div class="font-mono text-lg text-zinc-200">{{ game.Fair_Line }}</div>
+                    </div>
+
+                    <!-- Edge -->
+                    <div class="col-span-2 text-center">
+                        <div class="font-mono text-lg font-bold text-orion-blue">+{{ game.Edge }}%</div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="col-span-3 flex justify-end">
+                        {% if game.Action == 'PASS' %}
+                        <div
+                            class="px-4 py-2 bg-zinc-800/50 text-zinc-500 font-mono text-xs font-bold uppercase tracking-wider rounded">
+                            NO EDGE
+                        </div>
+                        {% else %}
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <div class="font-mono text-xs text-zinc-500 uppercase">Stake</div>
+                                <div class="font-mono text-lg font-bold text-white">{{ game.units }}u</div>
+                            </div>
+                            <button
+                                class="px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider bg-orion-blue text-black hover:bg-orion-cyan transition-colors rounded">
+                                {{ game.pick }}
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+            </div>
+
+        </main>
+
+        <!-- HISTORY / LEDGER (Restored from previous design to keep functionality) -->
+        <!-- HISTORY / LEDGER -->
+        <section class="opacity-0 animate-enter" style="animation-delay: 1.5s;">
+            <h3 class="font-sans font-bold text-xl text-white mb-6 uppercase tracking-wider">Graded Execution Log</h3>
+            <div class="bg-panel border border-border-dim overflow-hidden">
+                <table class="w-full text-left font-mono text-xs">
+                    <thead class="bg-white/5 text-zinc-500 uppercase">
+                        <tr>
+                            <th class="p-4 font-normal">Week</th>
+                            <th class="p-4 font-normal">Matchup</th>
+                            <th class="p-4 font-normal text-right">Spread</th>
+                            <th class="p-4 font-normal text-right">Edge</th>
+                            <th class="p-4 font-normal text-center">Position</th>
+                            <th class="p-4 font-normal text-center">Result</th>
+                            <th class="p-4 font-normal text-right">P&L</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-zinc-400">
+                        {% for item in history %}
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="p-4 text-zinc-500">W{{ item.week }}</td>
+                            <td class="p-4 text-white">
+                                {{ item.away }} <span class="text-zinc-600">@</span> {{ item.home }}
+                            </td>
+                            <td class="p-4 text-right text-zinc-300">
+                                {{ item.home }} <span class="text-zinc-500">{{ item.home_spread_str }}</span>
+                            </td>
+                            <td class="p-4 text-right text-orion-blue">
+                                {{ item.edge_val }}
+                            </td>
+                            <td class="p-4 text-center font-bold text-white">
+                                {{ item.pick_team }}
+                            </td>
+                            <td class="p-4 text-center">
+                                {% if item.result == 'WIN' %}
+                                <span class="text-orion-blue font-bold">WIN</span>
+                                {% elif item.result == 'LOSS' %}
+                                <span class="text-warning-orange font-bold">LOSS</span>
+                                {% elif item.result == 'PUSH' %}
+                                <span class="text-zinc-500 font-bold">PUSH</span>
+                                {% else %}
+                                {{ item.result }}
+                                {% endif %}
+                            </td>
+                            <td
+                                class="p-4 text-right font-bold {{ 'text-orion-blue' if item.profit > 0 else 'text-warning-orange' }}">
+                                {{ "%+.2f"|format(item.profit) }}u
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center text-[10px] font-mono text-zinc-600 uppercase">
+                <div>TERMINAL ID: 705-ALPHA</div>
+                <div>ORION ALGORITHMIC TRADING SYSTEMS INC.</div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Script for filter buttons -->
+    <script>
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const cards = document.querySelectorAll('.signal-row');
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all
+                filterBtns.forEach(b => {
+                    b.classList.remove('active', 'bg-orion-blue', 'text-black');
+                    b.classList.remove('text-orion-blue', 'border-orion-blue');
+                    b.classList.add('text-zinc-500', 'border-zinc-700');
+                });
+                // Add active to clicked
+                btn.classList.add('active', 'text-orion-blue', 'border-orion-blue');
+                btn.classList.remove('text-zinc-500', 'border-zinc-700');
+
+                const filter = btn.dataset.filter;
+
+                cards.forEach(card => {
+                    if (filter === 'all' || card.dataset.confidence.includes(filter)) {
+                        card.style.display = 'grid';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+    <!-- Stars Script (Canvas) -->
+    <script>
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        const stars = [];
+        const shootingStars = [];
+        const STAR_COUNT = 600;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        class Star {
+            constructor() { this.reset(true); }
+            reset(initial = false) {
+                this.x = (Math.random() - 0.5) * width * 2;
+                this.y = (Math.random() - 0.5) * height * 2;
+                this.z = initial ? Math.random() * width : width;
+                this.baseSize = Math.random() * 1.8;
+                this.baseAlpha = Math.random() * 0.6 + 0.2;
+                const layer = Math.random();
+                if (layer > 0.9) this.speed = 4 + Math.random() * 2;
+                else if (layer > 0.6) this.speed = 2 + Math.random() * 1;
+                else this.speed = 0.5 + Math.random() * 0.5;
+            }
+            update() {
+                this.z -= this.speed;
+                if (this.z <= 1) this.reset();
+            }
+            draw() {
+                const sx = (this.x / this.z) * width + width / 2;
+                const sy = (this.y / this.z) * height + height / 2;
+                if (sx < 0 || sx > width || sy < 0 || sy > height) return;
+                const size = (1 - this.z / width) * this.baseSize * 3;
+                const alpha = this.baseAlpha * (1 - this.z / width);
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(sx, sy, Math.max(0.1, size), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class ShootingStar {
+            constructor() { this.reset(true); }
+            reset(initial = false) {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height * 0.5;
+                this.len = Math.random() * 120 + 20;
+                this.speed = Math.random() * 15 + 10;
+                this.size = Math.random() * 1 + 0.5;
+                this.angle = Math.PI / 4;
+                this.waitTime = initial ? Math.random() * 300 : Math.random() * 600 + 200;
+                this.active = false;
+                const colors = ['#3B82F6', '#06B6D4', '#FFFFFF']; // Orion Blue/Cyan
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+            }
+            update() {
+                if (this.waitTime > 0) {
+                    this.waitTime--;
+                    this.active = this.waitTime <= 0;
+                    if (this.active) {
+                        this.x = Math.random() < 0.5 ? -100 : Math.random() * width;
+                        this.y = Math.random() * -100;
+                    }
+                } else if (this.active) {
+                    this.x += this.speed * Math.cos(this.angle);
+                    this.y += this.speed * Math.sin(this.angle);
+                    if (this.x > width + 200 || this.y > height + 200) this.reset();
+                }
+            }
+            draw() {
+                if (!this.active) return;
+                const tailX = this.x - this.len * Math.cos(this.angle);
+                const tailY = this.y - this.len * Math.sin(this.angle);
+                const gradient = ctx.createLinearGradient(this.x, this.y, tailX, tailY);
+                gradient.addColorStop(0, this.color);
+                gradient.addColorStop(1, "rgba(255,255,255,0)");
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = this.size;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(tailX, tailY);
+                ctx.stroke();
+            }
+        }
+
+        function initParticles() {
+            resize();
+            stars.length = 0;
+            shootingStars.length = 0;
+            for (let i = 0; i < STAR_COUNT; i++) stars.push(new Star());
+            for (let i = 0; i < 6; i++) shootingStars.push(new ShootingStar()); // Reduced count slightly
+            animateParticles();
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            stars.forEach(s => { s.update(); s.draw(); });
+            shootingStars.forEach(s => { s.update(); s.draw(); });
+            requestAnimationFrame(animateParticles);
+        }
+
+        window.addEventListener('resize', resize);
+        window.onload = initParticles;
+    </script>
+</body>
+
+</html>

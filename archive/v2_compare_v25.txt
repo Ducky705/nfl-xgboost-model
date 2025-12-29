@@ -1,0 +1,28 @@
+Loading Data & Models...
+
+Evaluating on Season 2025 (272 games)...
+Aligning to 271 model features...
+
+Performance Metrics (Season 2025):
+   Spread RMSE: 12.63 (Target: <13.5)
+   Spread MAE:  9.74
+   Total RMSE:  19.39
+   Total MAE:   14.29
+
+Simple Betting Simulation (Edge > 1.5):
+
+   Spread Bets:
+   Record: 186-45-16
+   Win Rate: 80.5%
+
+Top 10 Predictive Features (Spread):
+   diff_ats_win_L6: 8154.5
+   diff_ats_win_L5: 7610.5
+   diff_ats_win_L10: 6746.4
+   diff_ats_win_season: 6514.4
+   diff_ats_win_L8: 5876.0
+   diff_off_edsr_season: 3846.1
+   diff_ats_win_L4: 3768.4
+   diff_off_edsr_L10: 3276.4
+   diff_off_epa_season: 3089.8
+   diff_su_win_L4: 3031.5
