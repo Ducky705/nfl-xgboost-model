@@ -7,8 +7,4 @@ venv/
 
 # Model & Data (Keep these private)
 nfl_bettor.json
-data/*.pkl
-models/
-docs/ledger.csv
-*.p
-*.pkl
+data/nfl_db.pkl

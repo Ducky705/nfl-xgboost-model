@@ -1,0 +1,12 @@
+
+--- SPREAD MODEL ---
+Best MAE: 9.8231
+Params: {'n_estimators': 1096, 'learning_rate': 0.003224174335150311, 'max_depth': 2, 'subsample': 0.6716903488244994, 'colsample_bytree': 0.927577953319203, 'reg_alpha': 2.5131608042245603, 'reg_lambda': 3.5462744111972, 'min_child_weight': 6}
+
+--- TOTAL MODEL ---
+Best MAE: 12.0691
+Params: {'n_estimators': 927, 'learning_rate': 0.001686022924704778, 'max_depth': 2, 'subsample': 0.7582691579547144, 'colsample_bytree': 0.8129366635719418, 'reg_alpha': 3.9956970148633837, 'reg_lambda': 3.59752822158637, 'min_child_weight': 6}
+
+--- MONEYLINE MODEL ---
+Best MAE: 0.6442
+Params: {'n_estimators': 2271, 'learning_rate': 0.0017465904344566169, 'max_depth': 3, 'subsample': 0.6437459766004183, 'colsample_bytree': 0.5167531241585572, 'reg_alpha': 3.268548079220718, 'reg_lambda': 3.687206184848204, 'min_child_weight': 10}
