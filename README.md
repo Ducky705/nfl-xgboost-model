@@ -106,3 +106,26 @@ For detailed MLOps and Infrastructure specs, please consult **Section 7** of the
 ---
 **Astralis Quantitative Division**  
 *Proprietary Research | Internal Use Only*
+
+---
+
+## 🔒 DECRYPTION GUIDE
+If you have cloned this repository and possess the `MODEL_ENCRYPTION_KEY`, you can decrypt the trained models for local use.
+
+1. **Set the Key**:
+   ```bash
+   # Option A: Set as Environment Variable (Recommended)
+   export MODEL_ENCRYPTION_KEY="your-secret-key-here"
+   
+   # Option B: Pass via Command Line (See below)
+   ```
+
+2. **Run Decryption**:
+   ```bash
+   python scripts/model_security.py decrypt
+   # OR with manual flag
+   python scripts/model_security.py decrypt --key "your-secret-key-here"
+   ```
+
+3. **Verify**:
+   The `models/` directory will now contain `.json` and `.pkl` files.
