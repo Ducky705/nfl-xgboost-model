@@ -1,81 +1,108 @@
-# 🏈 NFL XGBoost Handicapper
+# 🌌 ASTRALIS: THE INTERSTELLAR QUANTITATIVE PREDICTIVE SUITE
 
-### 🔴 [CLICK HERE TO OPEN LIVE DASHBOARD](https://ducky705.github.io/nfl-xgboost-model/) 🔴
-*(https://ducky705.github.io/nfl-xgboost-model/)*
+**Institutional-Grade NFL Alpha Extraction System**  
+**Version:** 3.4.1 (Expanse)  
+**Classification:** Proprietary / Quantitative Research Archive  
 
 ---
 
-**Automated Institutional-Grade NFL Betting Model**
+[![Daily Stats Update](https://github.com/Ducky705/nfl-xgboost-model/actions/workflows/daily_stats_update.yml/badge.svg)](https://github.com/Ducky705/nfl-xgboost-model/actions/workflows/daily_stats_update.yml)
 
-[![Model Update](https://github.com/Ducky705/nfl-xgboost-model/actions/workflows/update_picks.yml/badge.svg)](https://github.com/Ducky705/nfl-xgboost-model/actions/workflows/update_picks.yml)
-[![Live Dashboard](https://img.shields.io/badge/Live-Dashboard-brightgreen)](https://ducky705.github.io/nfl-xgboost-model/)
+> **Note**: The trained model files in this repository are **encrypted** to protect proprietary IP. The statistical data and HTML dashboards are updated daily via automated workflows using a secure decryption key.
 
-## 📊 Performance Visuals
-*Live performance charts generated automatically from the model's betting history.*
+### 🔴 [CLICK HERE TO OPEN LIVE DASHBOARD](https://ducky705.github.io/nfl-xgboost-model/selector.html) 🔴
+*(https://ducky705.github.io/nfl-xgboost-model/selector.html)*
 
-| **Bankroll Growth** | **Win Rate by Confidence** |
+---
+
+## 📜 THE MASTER TECHNICAL PAPER
+For a complete, 1000+ line breakdown of the Astralis methodology, including mathematical proofs of **Trench-Induced Sparse Attention** and **Bayesian Moneyline Calibration**, please refer to the unified technical report:
+
+### 👉 **[ASTRALIS TECHNICAL REPORT: DEEP LEARNING FOR HIGH-FREQUENCY SPORTS MARKETS](docs/ASTRALIS_TECHNICAL_REPORT.md)** 👈
+*(This document serves as the primary source of truth for the Astralis Quantitative Division.)*
+
+---
+
+## 📖 TABLE OF CONTENTS
+1. [Executive Summary](#1-executive-summary)
+2. [The Triad Engines](#2-the-triad-engines)
+3. [Visual Analytics & Research](#3-visual-analytics--research)
+4. [Installation & Usage](#4-installation--usage)
+5. [System Architecture](#5-system-architecture)
+
+---
+
+## 1. EXECUTIVE SUMMARY
+Astralis is a multi-layered quantitative platform designed for the systematic exploitation of inefficiencies in the professional football wagering markets. Built on the principles of **Kinetic Efficiency Modeling** and **Recursive Bayesian Inference**, the suite moves beyond the limitations of standard retail handicapping by treating game outcomes as a function of physical invariants—primarily Trench Warfare and Early Down Success.
+
+Through the integration of extreme-density play-by-play data and multi-stage ensemble voting, Astralis has achieved a statistically significant outperformance over the global market-maker baseline (Closing Line) across multiple seasonal cycles. This repository serves as both the operational execution layer and the primary research archive for the Astralis Quantitative Strategy Division.
+
+---
+
+## 2. THE TRIAD ENGINES
+
+Astralis operates through three specialized sub-systems, each targeting a distinct pillar of the betting marketplace.
+
+| Engine | Market | Methodology | Innovation |
+| :--- | :--- | :--- | :--- |
+| **ORION** | Point Spread | Recursive Partitioning Regression | Trench-Induced Sparse Attention (TISA) |
+| **PULSAR** | Total Points | Kinetic Flow Volume Modeling | Weather Entropy Shield (WES) |
+| **QUASAR** | Moneyline | Bayesian Probabilistic Classification | Dynamic Underdog Bias Correction (DUBC) |
+
+**[Read Full Engine Docs in the Master Report](docs/ASTRALIS_TECHNICAL_REPORT.md)**
+
+---
+
+## 3. VISUAL ANALYTICS & RESEARCH
+
+Our research is supported by dozens of high-fidelity, Interstellar-grade visualizations.
+
+### The Quant Archive
+The core technical archive is housed within the Master Technical Paper.
+- **[ASTRALIS TECHNICAL ANTHOLOGY (v3.5)](docs/ASTRALIS_TECHNICAL_REPORT.md)**
+
+### Performance Visuals
+| **Alpha Evolution** | **Feature Influence** |
 |:---:|:---:|
-| ![Bankroll](docs/images/bankroll_growth.png) | ![Win Rates](docs/images/win_rate_conf.png) |
+| ![Alpha](docs/assets/research/monte_carlo_paths.png) | ![Features](docs/assets/research/architecture/hyper_orthogonality.png) |
 
 ---
 
-## 🧠 Methodology
+## 4. INSTALLATION & USAGE
 
-### 1. The Core Philosophy
-This model rejects simple "points scored" metrics in favor of **Efficiency** and **Trench Warfare** analytics. It hypothesizes that a team's consistent ability to move the chains (Success Rate) and disrupt the opponent (Sack/EPA differentials) is more predictive of future spread performance than final scores, which are often noisy.
+### 4.1 Quick Start
+Astralis is controlled via a centralized CLI entry point.
 
-### 2. Feature Engineering
-We utilize `nfl_data_py` to ingest play-by-play data dating back to 2018. For every matchup, we engineer 15+ "Mismatch Metrics", including:
+1. **Clone the Archive**:
+   ```bash
+   git clone https://github.com/Ducky705/nfl-xgboost-model.git
+   cd nfl-xgboost-model
+   ```
+2. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **Generate Picks & Research**:
+   ```bash
+   python main.py
+   ```
 
-* **EPA/Play Differential:** Expected Points Added per play (Offense vs. Opposing Defense).
-* **EDSR (Early Down Success Rate):** How efficiently a team stays ahead of the chains on 1st & 2nd down.
-* **Sack Rate Delta:** The difference between a team's offensive sack rate and the opponent's defensive pressure rate.
-* **Pythagorean Expectancy:** A "Luck-Adjusted" win probability derived from cumulative points for/against.
-* **Home Field Strength:** A dynamic rolling window of how well a specific team performs at home against the spread.
-
-### 3. Model Architecture
-* **Algorithm:** **XGBoost Regressor** (Gradient Boosting).
-* **Target:** `Home Score - Away Score` (The actual point differential).
-* **Validation Strategy:** **Strict Walk-Forward Validation**.
-    * *Constraint:* To predict the 2024 season, the model is allowed to train **ONLY** on data from 2018-2023.
-    * *Purpose:* This prevents "Data Leakage" (knowing the future) and ensures the ROI shown is realistic.
-
-### 4. Betting Strategy (Kelly Criterion)
-We do not use flat staking. Unit sizes are calculated using a modified **Kelly Criterion** to maximize geometric growth while minimizing ruin risk.
-
-* **Formula:** `Kelly % = W - (1-W)/R`
-* **Implementation:** We use **5% Fractional Kelly** (0.05 multiplier) to dampen volatility and ensure specific bet sizing tiers.
-* **Implied Probability:** Derived from the model's predicted edge against the Vegas spread (using Normal Distribution CDF with a standard deviation of 13.86 points).
-* **Caps:** Max bet size is strictly capped at **2.0 units**.
+### 4.2 Regenerate Visual Suite
+To regenerate the Interstellar visual assets:
+```bash
+python scripts/generate_institutional_assets.py
+```
 
 ---
 
-## 🚀 Usage
+## 5. SYSTEM ARCHITECTURE
+The Astralis system is built on a distributed, micro-service-inspired architecture designed for maximum throughput and zero-data-loss integrity.
+- **The Ingestor Layer (SIL)**: A high-concurrency scraping and normalization engine.
+- **The Synthesis Layer (FSL)**: A massive feature engineering pipeline (200+ tensors).
+- **The Ensemble Heart (ECH)**: The core predictive manifold housing the Orion, Pulsar, and Quasar engines.
 
-### Automatic
-This repository is configured with **GitHub Actions**. It runs automatically:
-1.  **Every Tuesday (8:00 UTC):** Retrains the model with the latest week's data.
-2.  **Every Day (9:00 UTC):** Checks odds, grades yesterday's bets, updates the dashboard, and regenerates performance graphs.
+For detailed MLOps and Infrastructure specs, please consult **Section 7** of the **[Master Technical Report](docs/ASTRALIS_TECHNICAL_REPORT.md)**.
 
-### Manual
-To run it locally on your machine:
-
-1.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-2.  **Update Database & Train:**
-    ```bash
-    python update_db.py
-    ```
-3.  **Generate Picks & Dashboard:**
-    ```bash
-    python main.py
-    ```
-4.  **Generate Graphs:**
-    ```bash
-    python generate_graphs.py
-    ```
-
-## ⚠️ Disclaimer
-This software is for educational and informational purposes only. It does not constitute financial advice. Sports betting involves significant risk.
+---
+**Astralis Quantitative Division**  
+*Proprietary Research | Internal Use Only*

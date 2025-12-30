@@ -24,7 +24,7 @@ COLORS = {
 sns.set_context("poster")
 
 # --- DATA: THE EVOLUTION ---
-versions = ['v0 (Human)', 'v1 (Stats)', 'v2 (AI)', 'v3 (Quarry)']
+versions = ['v0.0 (Human)', 'v1.0 (Stats)', 'v2.0 (AI)', 'v3.0 (Ensemble)']
 descriptions = [
     'Manual Handicapping\nIntuition & Bias',
     'Linear Regression\nPoints & Yards',
@@ -76,7 +76,7 @@ def create_billion_dollar_report():
     y_v2 = np.linspace(0, 180, 100)
     y_v3 = np.linspace(0, 280, 100) # Exponential-ish look
 
-    ax2.plot(x, y_v3, color=COLORS['accent_v3'], linewidth=4, label='v3 (The Quarry)')
+    ax2.plot(x, y_v3, color=COLORS['accent_v3'], linewidth=4, label='v3.0 (Ensemble)')
     ax2.plot(x, y_v2, color=COLORS['accent_v2'], linewidth=3, linestyle='--', label='v2 (Deep Learning)')
     ax2.plot(x, y_v1, color=COLORS['accent_v1'], linewidth=2, linestyle=':', label='v1 (Basic Stats)')
     ax2.plot(x, y_v0, color=COLORS['accent_v0'], linewidth=1, alpha=0.5, label='v0 (Human)')
@@ -114,10 +114,10 @@ def create_billion_dollar_report():
     ax5 = fig.add_subplot(gs[1, 2])
     ax5.axis('off')
     text = (
-        "THE QUARRY (v3) ADVANTAGE\n\n"
-        "1. SITUATIONAL AWARENESS\n"
-        "   Moved beyond raw stats to context \n"
-        "   (Rest, Travel, Primetime).\n\n"
+        "ENSEMBLE (v3.0) ADVANTAGE\n\n"
+        "1. MODEL DIVERSITY\n"
+        "   Combined XGBoost, Stacking \n"
+        "   and Voting methodologies.\n\n"
         "2. FEATURE PRUNING\n"
         "   Reduced noise by 15% whilst \n"
         "   increasing accuracy.\n\n"

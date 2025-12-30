@@ -1,1 +1,0 @@
-{'season': 2025, 'week': 14, 'matchup': 'DAL @ DET', 'pick': 'DAL (1.0u)', 'line': nan, 'result': 'LOSS', 'profit': -1.0, 'status': 'GRADED', 'game_id': '2025_14_DAL_DET', 'line_display': 'DET -3.5', 'fair_display': 'DET +0.7', 'edge': 4.2, 'conf': 'SOLID', 'units_wagered': 1.0, 'pick_team': 'DAL', 'home': 'DET', 'away': 'DAL'}

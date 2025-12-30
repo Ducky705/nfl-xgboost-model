@@ -6,5 +6,7 @@ venv/
 .env
 
 # Model & Data (Keep these private)
-nfl_bettor.json
+models/*
+!models/*.enc
+!models/.keep
 data/nfl_db.pkl

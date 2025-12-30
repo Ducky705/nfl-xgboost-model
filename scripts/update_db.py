@@ -8,7 +8,7 @@ from datetime import datetime
 
 # --- CONFIG ---
 CACHE_PATH = "data/nfl_db.pkl"
-MODEL_PATH = "nfl_bettor.json"
+MODEL_PATH = "models/nfl_bettor.json"
 TEAM_MAP = {'ARZ': 'ARI', 'BLT': 'BAL', 'CLV': 'CLE', 'HST': 'HOU', 'SD': 'LAC', 'SL': 'LA', 'STL': 'LA', 'OAK': 'LV'}
 
 now = datetime.now()

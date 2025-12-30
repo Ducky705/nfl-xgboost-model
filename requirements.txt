@@ -9,3 +9,5 @@ scipy
 matplotlib
 seaborn
 cryptography
+lightgbm
+catboost

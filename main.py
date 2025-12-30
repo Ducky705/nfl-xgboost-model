@@ -13,11 +13,15 @@ import numpy as np
 import shutil
 
 # --- CONFIG ---
+# --- CONFIG ---
 CACHE_PATH_V2 = "data/nfl_db_v2.pkl"
 FEATURES_PATH_V2 = "data/nfl_features_v2.pkl"
-MODEL_SPREAD_PATH = "models/v2_spread.json"
-MODEL_TOTAL_PATH = "models/v2_total.json"
-MODEL_ML_PATH = "models/v2_moneyline.json"
+MODEL_STACK_PATH = "models/v3_ensemble_stack.pkl"
+MODEL_TOTAL_PATH = "models/v3_total_stack.pkl" 
+MODEL_ML_PATH = "models/v3_moneyline_stack.pkl"
+
+from src.ensemble_model import VotingEnsemble
+
 
 DATA_PATH = "data/betting_history.csv"
 DOCS_PATH = "docs/index.html"
@@ -28,19 +32,20 @@ SYS_VAR_TOLERANCE = "LOW"
 SYS_KELLY_SCALAR = 0.25
 SYS_LIQUIDITY_REQ = "HIGH" 
 
-# --- KELLY CRITERION FUNCTION ---
+# --- KELLY CRITERION FUNCTIONS ---
 def calculate_kelly_units(abs_edge):
     """Calculates Kelly Unit size based on point spread edge.
     
-    V3.2 - Balanced thresholds for optimal volume/profit ratio.
+    V3 - Manually Tuned for High ROI/Quality (User Pref).
     """
-    STD_DEV = 12.53
+    STD_DEV = 12.53 
     PAYOUT_RATIO = 0.9091
-    # V3.2: Balanced from sweep - lower than v3.0 (5.0) but not as loose as v3.1 (1.0)
-    MIN_EDGE = 3.5 
-    MAX_UNITS = 5.0 
-    KELLY_FRACTION = 0.10  # V3.2: More conservative for stability
-
+    
+    # V3 Manual Adjustments (Restoring 32-22-0 Sweet Spot)
+    MIN_EDGE = 3.5    # Loosened from 3.6 to capture missed wins
+    MAX_UNITS = 2.0
+    KELLY_FRACTION = 0.035  # Increased slightly to boost ROI
+    
     if abs_edge < MIN_EDGE:
         return 0.0, "None"
 
@@ -52,9 +57,9 @@ def calculate_kelly_units(abs_edge):
     kelly_units = max(0.0, full_kelly_percent * KELLY_FRACTION)
     units = round(min(kelly_units, MAX_UNITS), 1)
     
-    if units >= 1.5: conf = "🔥 STRONG"
-    elif units >= 0.8: conf = "💪 SOLID" 
-    elif units >= 0.1: conf = "⚠️ LEAN"
+    if units >= 1.5: conf = "STRONG"
+    elif units >= 0.8: conf = "SOLID" 
+    elif units >= 0.1: conf = "LEAN"
     else: conf = "None"
         
     return units, conf
@@ -62,15 +67,16 @@ def calculate_kelly_units(abs_edge):
 def calculate_totals_kelly(abs_edge):
     """Calculates Kelly Unit size for TOTALS.
     
-    V3.2 - Confirmed optimal via Optuna sweep.
+    V3 - Manually Tuned for Positive ROI (Safety First).
     """
     STD_DEV = 13.5
     PAYOUT_RATIO = 0.9091
-    # V3.2: Confirmed optimal from sweep
-    MIN_EDGE = 4.8 
-    MAX_UNITS = 4.8
-    KELLY_FRACTION = 0.21
-
+    
+    # V3 Manual Adjustment (Emergency Fix for Negative ROI)
+    MIN_EDGE = 4.5    
+    MAX_UNITS = 2.0
+    KELLY_FRACTION = 0.05  
+    
     if abs_edge < MIN_EDGE:
         return 0.0, "None"
 
@@ -82,58 +88,56 @@ def calculate_totals_kelly(abs_edge):
     kelly_units = max(0.0, full_kelly_percent * KELLY_FRACTION)
     units = round(min(kelly_units, MAX_UNITS), 1)
     
-    if units >= 0.8: conf = "🔥 STRONG"
-    elif units >= 0.5: conf = "💪 SOLID" 
-    elif units >= 0.1: conf = "⚠️ LEAN"
+    if units >= 0.8: conf = "STRONG"
+    elif units >= 0.5: conf = "SOLID" 
+    elif units >= 0.1: conf = "LEAN"
     else: conf = "None"
         
     return units, conf
 
+
 def calculate_moneyline_kelly(model_prob, vegas_prob, vegas_odds):
     """Calculates Kelly Unit size for MONEYLINE using true probability-based EV.
     
-    V3.2 - Balanced volume with proven positive edge.
-    
-    Args:
-        model_prob: Model's predicted win probability (0-1)
-        vegas_prob: Vegas implied probability (0-1) 
-        vegas_odds: American odds for display
-    
-    Returns:
-        (units, confidence_string)
+    V3 - Optuna-Optimized for ROI with min 15 bets.
+    (Reverted to user-preferred High ROI settings 21-9-0)
     """
-    # V3.2: 5% edge threshold (looser than v3.0's 20%, tighter than v3.1's near-0%)
-    MIN_EDGE = 0.05
-    MAX_UNITS = 3.0
+    # V3 Optuna-Optimized Parameters (ROI-focused, min 15 bets)
+    MIN_EDGE = 0.0503  # 5.03% edge threshold
+    MAX_UNITS = 2.0   # Cap
+    MIN_ODDS = -134   # Optuna optimal
+    MAX_ODDS = 127    # Optuna optimal (tighter range = higher quality)
+    KELLY_FRACTION = 2.91  # Optuna optimal
     
-    # Calculate edge
+    # 1. Odds Filter
+    if vegas_odds < MIN_ODDS or vegas_odds > MAX_ODDS:
+        return 0.0, "None"
+    
     edge = model_prob - vegas_prob
     
     if edge < MIN_EDGE:
         return 0.0, "None"
     
-    # Calculate payout multiplier from odds
     if vegas_odds < 0:
-        payout = 100 / abs(vegas_odds)  # e.g., -150 -> 0.667
+        payout = 100 / abs(vegas_odds)
     else:
-        payout = vegas_odds / 100  # e.g., +150 -> 1.5
+        payout = vegas_odds / 100
     
-    # True Kelly: f* = (bp - q) / b where b = payout, p = win prob, q = 1-p
     b = payout
     p = model_prob
     q = 1 - p
     
     kelly_fraction = (b * p - q) / b if b > 0 else 0
-    
-    # V3.2: Apply fractional Kelly (0.12) and cap
-    units = round(min(max(0, kelly_fraction * 0.12), MAX_UNITS), 1)
+    # V3.0: Optuna-Optimized Kelly
+    units = round(min(max(0, kelly_fraction * KELLY_FRACTION), MAX_UNITS), 1)
     
     if units > 0:
-        conf = "💪 SOLID" if edge >= 0.10 else "⚠️ LEAN"
+        conf = "SOLID" if edge >= 0.15 else "LEAN"
     else:
         conf = "None"
         
     return units, conf
+
 
 # --- SYSTEM CONFIDENCE FUNCTION (UNCHANGED) ---
 def calculate_system_confidence(graded_df):
@@ -244,12 +248,28 @@ with open(CACHE_PATH_V2, 'rb') as f:
 
 # Load Models
 print(f"Loading Models...")
-spread_model = xgb.Booster()
-spread_model.load_model(MODEL_SPREAD_PATH)
-total_model = xgb.Booster() 
-total_model.load_model(MODEL_TOTAL_PATH)
-ml_model = xgb.XGBClassifier()
-ml_model.load_model(MODEL_ML_PATH)
+print(f"   Loading v3 Spread Ensemble: {MODEL_STACK_PATH}")
+with open(MODEL_STACK_PATH, 'rb') as f:
+    spread_model = pickle.load(f)
+
+# Load v3 features
+with open("models/v3_features.pkl", 'rb') as f:
+    v4_features = pickle.load(f)
+
+# v3 Total (Pulsar)
+print(f"   Loading v3 Total Ensemble...")
+with open("models/v3_total_stack.pkl", 'rb') as f:
+    total_model = pickle.load(f)
+with open("models/v3_total_features.pkl", 'rb') as f:
+    v4_total_features = pickle.load(f)
+
+# v3 Moneyline (Quasar)
+print(f"   Loading v3 Moneyline Ensemble...")
+with open("models/v3_moneyline_stack.pkl", 'rb') as f:
+    ml_model = pickle.load(f)
+with open("models/v3_moneyline_features.pkl", 'rb') as f:
+    v4_ml_features = pickle.load(f)
+
 
 # Load History (Features for context)
 with open(FEATURES_PATH_V2, 'rb') as f:
@@ -260,7 +280,12 @@ CURRENT_SEASON = feature_df['season'].max()
 # Removed spread_to_moneyline function in favor of dedicated model
 
 # --- 2. PREDICT UPCOMING ---
-def run_predictions(schedule, base_stats, injury_stats, spread_model, total_model, ml_model, override_week=None, min_week=0):
+# --- 2. PREDICT UPCOMING ---
+def run_predictions(db, spread_model, total_model, ml_model, override_week=None, min_week=0):
+    schedule = db['schedule']
+    base_stats = db['base_stats']
+    injury_stats = db['injury_stats']
+
     # Filter schedule for upcoming games in CURRENT_SEASON
     if override_week:
         upcoming = schedule[(schedule['season'] == CURRENT_SEASON) & (schedule['week'] == override_week)].copy()
@@ -274,57 +299,55 @@ def run_predictions(schedule, base_stats, injury_stats, spread_model, total_mode
             return [], 0
         next_week = upcoming['week'].min()
 
-    print(f"🔮 Analyzing Week {next_week}...")
+    print(f"Analyzing Week {next_week}...")
+    
+    print(f"Analyzing Week {next_week}...")
     
     # Run Pipeline
-    full_games = v2_features.engineering_pipeline(schedule, base_stats, injury_stats)
+    # v3 refactor expects full db object (or at least dict with schedule etc)
+    # We pass the full db object which contains 'schedule', 'base_stats', 'injury_stats', 'starters' etc.
+    full_games = v2_features.engineering_pipeline(db)
+
     
     # Filter for next week
     week_df = full_games[(full_games['season'] == CURRENT_SEASON) & (full_games['week'] == next_week)].copy()
     
     preds = []
     
-    # Get model features
-    spread_features = spread_model.feature_names
-    total_features = total_model.feature_names
-    # ml_model might be XGBClassifier (sklearn wrapper) or Booster. 
-    # If loaded via load_model on XGBClassifier instance, it has feature_names_in_ usually?
-    # Or calculate from booster.
-    try:
-        ml_features = ml_model.feature_names
-    except:
-        ml_features = ml_model.get_booster().feature_names
+    # Get model features (all v3 now)
+    spread_features = v4_features
+    total_features = v4_total_features
+    ml_features = v4_ml_features
     
     if not spread_features:
-        print("⚠️ Model feature names missing!")
+        print("Model feature names missing!")
         return [], 0
 
     for _, game in week_df.iterrows():
         # --- PREPARE DATA ---
         row_df = pd.DataFrame([game])
         
-        # Spread Data
+        # Spread Data (v4 Ensemble - uses DataFrame)
         for c in spread_features:
             if c not in row_df.columns: row_df[c] = 0
-        X_spread = xgb.DMatrix(row_df[spread_features])
+        X_spread = row_df[spread_features]
         
-        # Total Data
+        # Total Data (v4 Ensemble - uses DataFrame)
         for c in total_features:
             if c not in row_df.columns: row_df[c] = 0
-        X_total = xgb.DMatrix(row_df[total_features])
+        X_total = row_df[total_features]
 
-        # Moneyline Data
+        # Moneyline Data (v4 Classifier Ensemble - uses DataFrame)
         for c in ml_features:
             if c not in row_df.columns: row_df[c] = 0
-        
-        # Note: DMatrix is needed for Booster, but if we use XGBClassifier.predict_proba we might need DataFrame?
-        # If we loaded into an XGBClassifier instance, we can pass df or DMatrix.
-        # Ideally pass DataFrame with correct column order.
         X_ml = row_df[ml_features]
         
         # --- PREDICTIONS ---
+        # --- PREDICTIONS ---
+        # spread_model is now VotingEnsemble (supports .predict(X))
         pred_margin = spread_model.predict(X_spread)[0] # Home Margin
         pred_total = total_model.predict(X_total)[0]    # Total Score
+
         
         fair_line = max(min(pred_margin, 25), -25)
         fair_total = max(min(pred_total, 70), 20)
@@ -552,7 +575,7 @@ if __name__ == "__main__":
         final_hist = pd.DataFrame()
         last_graded_week = 0
 
-    print(f"📅 Last Graded Week: {last_graded_week}. Checking for pending games...")
+    print(f"Last Graded Week: {last_graded_week}. Checking for pending games...")
     
     # Check if the last graded week is actually complete
     min_scan_week = last_graded_week
@@ -567,20 +590,20 @@ if __name__ == "__main__":
             (schedule['game_type'] == 'REG')
         ]
         if not pending.empty:
-            print(f"⚠️ Week {last_graded_week} incomplete ({len(pending)} games pending). Staying on Week {last_graded_week}.")
+            print(f"Week {last_graded_week} incomplete ({len(pending)} games pending). Staying on Week {last_graded_week}.")
             min_scan_week = last_graded_week - 1
             pending_game_ids = set(pending['game_id'])
             
             
-    print(f"🚀 Scanning for Week {min_scan_week + 1}+")
+    print(f"Scanning for Week {min_scan_week + 1}+")
 
-    active_bets, next_week_num = run_predictions(db['schedule'], db['base_stats'], db['injury_stats'], spread_model, total_model, ml_model, min_week=min_scan_week)
+    active_bets, next_week_num = run_predictions(db, spread_model, total_model, ml_model, min_week=min_scan_week)
     
     # Sort ALL Active Bets for Index/Selector logic
     if active_bets:
         # If we are restricting to pending games (because week is incomplete), filter here
         if pending_game_ids:
-            print(f"🧹 Filtering Active Bets to {len(pending_game_ids)} pending games...")
+            print(f"Filtering Active Bets to {len(pending_game_ids)} pending games...")
             active_bets = [b for b in active_bets if b.get('game_id') in pending_game_ids]
             
         active_bets.sort(key=lambda x: (x['units'], x['Edge']), reverse=True)
@@ -608,112 +631,37 @@ if __name__ == "__main__":
         win_pct = round((wins/total_games)*100, 1) if total_games > 0 else 0.0
         record_str = f"{wins}-{losses}-{pushes}"
         
-        # Recent History
+        # Recent History - NOW SHOWS ALL GRADED PICKS (most recent first)
         recent = []
         if not graded.empty:
-            last_wk = graded['week'].max()
-            recent_df = graded[graded['week'] == last_wk].sort_values('profit', ascending=False)
+            # Sort by week descending, then by profit descending within each week
+            recent_df = graded.sort_values(['week', 'profit'], ascending=[False, False])
             recent = recent_df.to_dict('records')
             
-            # --- RECONSTRUCT HISTORY EDGES ---
-            # Run predictions for the past week to recover edges/lines
-            try:
-                hist_preds, _ = run_predictions(db['schedule'], db['base_stats'], db['injury_stats'], spread_model, total_model, ml_model, override_week=last_wk)
-                
-                # Create lookup: (team, week) -> {edge, line}
-                hist_map = {}
-                for p in hist_preds:
-                    # Key by pick team
-                    if 'pick' in p:
-                        hist_map[p['pick']] = p
-                
-                # Enrich recent history items
-                for r in recent:
-                    pick_team = r.get('pick_team')
-                    if pick_team in hist_map:
-                        data = hist_map[pick_team]
-                        r['edge_val'] = data.get('Edge')
-                        r['edge_str'] = f"(Edge +{data.get('Edge')})" if data.get('Edge') else ""
-                        
-                        # Calculate Pick Line
-                        # Vegas string is always 'Spread: <Away> <Line>'
-                        # e.g. 'Spread: DEN -13.5'
-                        try:
-                            # Vegas string is cleaner now (no prefixes)
-                            vegas_body = data['Vegas'] 
-                            away_team = data['away']
-                            type_bet = data.get('type', 'spread')
-                            
-                            if type_bet == 'spread':
-                                # Format: "DEN -13.5" or "-13.5" (if cleaner)
-                                # My cleanup kept "AwayTeam Line" e.g. "DEN -13.5" for active bets?
-                                # Let's check line 2130: f"{game['away_team']} {raw_away_spread:+}"
-                                # Yes, it includes Away Team.
-                                
-                                line_part = vegas_body.replace(away_team, "").strip() # "-13.5"
-                                line_val = float(line_part)
-                                home_spread_val = -1 * line_val
-                                r['home_spread_str'] = f"{home_spread_val:+}"
-                                
-                                if pick_team == away_team:
-                                    r['line_str'] = f"{line_val:+}"
-                                else:
-                                    r['line_str'] = f"{-line_val:+}" # Home Line
-                                    
-                            elif type_bet == 'total':
-                                # Format: "45.5"
-                                r['home_spread_str'] = f"T: {vegas_body}"
-                                r['line_str'] = f"{data.get('pick', '')} {vegas_body}"
-                                
-                            elif type_bet == 'moneyline':
-                                # Format: "-150"
-                                r['home_spread_str'] = f"{vegas_body}"
-                                r['line_str'] = f"{vegas_body}"
-
-                        except Exception as e:
-                            # print(f"Error parsing history line: {e}")
-                            r['line_str'] = ""
-                            r['home_spread_str'] = "-"
-
-                        if 'Action' in data and "ML" in data['Action']:
-                             r['line_str'] = "ML"
-            except Exception as e:
-                print(f"⚠️ Could not reconstruct history edge: {e}")
-
-            # Add opponent field
-            
-            # Add opponent field
+            # Add opponent field for each record
             for r in recent:
                 try:
                     pick = str(r.get('pick_team', '')).strip()
                     home = str(r.get('home', '')).strip()
                     away = str(r.get('away', '')).strip()
                     
-                    if pick == home:
-                        r['opponent'] = away
-                        r['is_home'] = True
-                    elif pick == away:
-                        r['opponent'] = home
-                        r['is_home'] = False
+                    # Determine opponent
+                    if 'ML' in pick:
+                        pick_clean = pick.replace(' ML', '')
+                        r['opponent'] = away if pick_clean == home else home
+                    elif pick == 'OVER' or pick == 'UNDER':
+                        r['opponent'] = ''  # Totals don't have opponent
                     else:
-                        # Fallback
-                        matchup = str(r.get('matchup', ''))
-                        if ' @ ' in matchup:
-                            teams = matchup.split(' @ ')
-                            if pick == teams[0]: # Pick is Away
-                                r['opponent'] = teams[1]
-                                r['is_home'] = False
-                            else:
-                                r['opponent'] = teams[0]
-                                r['is_home'] = True
-                        else:
-                            r['opponent'] = "OPP"
-                            r['is_home'] = True # Default
-                except Exception as e:
-                    print(f"Error parsing opponent for {r}: {e}")
-                    r['opponent'] = "OPP"
-                    r['is_home'] = True
-            
+                        r['opponent'] = away if pick == home else home
+                    
+                    # Format week display
+                    r['week_str'] = f"W{r.get('week', '')}"
+                    
+                except Exception:
+                    r['opponent'] = ''
+                    r['week_str'] = ''
+
+
         conf_level, conf_color, conf_detail = calculate_system_confidence(graded)
         
         # Determine Units Generated (Alpha)
@@ -747,7 +695,7 @@ if __name__ == "__main__":
         
         full_out_path = f"docs/{filename}"
         with open(full_out_path, "w", encoding="utf-8") as f: f.write(html_out)
-        print(f"✅ Generated {filename} ({len(bets_list)} active signals)")
+        print(f"Generated {filename} ({len(bets_list)} active signals)")
         return roi, record_str, win_pct, alpha_units
 
     # --- PARTITION HISTORY ---
@@ -765,7 +713,7 @@ if __name__ == "__main__":
     # 1. ORION (Spread)
     orion_roi, orion_rec, orion_pct, orion_alpha = render_page(
         "spread.html", 
-        "PROTOCOL 705 // ORION", 
+        "ASTRALIS // ORION", 
         "ORION", 
         spread_bets, 
         orion_hist,
@@ -775,7 +723,7 @@ if __name__ == "__main__":
     # 2. PULSAR (Totals)
     pulsar_roi, pulsar_rec, pulsar_pct, pulsar_alpha = render_page(
         "totals.html", 
-        "PROTOCOL 705 // PULSAR", 
+        "ASTRALIS // PULSAR", 
         "PULSAR", 
         total_bets, 
         pulsar_hist,
@@ -785,7 +733,7 @@ if __name__ == "__main__":
     # 3. QUASAR (Moneyline)
     quasar_roi, quasar_rec, quasar_pct, quasar_alpha = render_page(
         "moneyline.html", 
-        "PROTOCOL 705 // QUASAR", 
+        "ASTRALIS // QUASAR", 
         "QUASAR", 
         ml_bets, 
         quasar_hist,
@@ -886,13 +834,13 @@ if __name__ == "__main__":
     
     SELECTOR_PATH = "docs/selector.html"
     with open(SELECTOR_PATH, "w", encoding="utf-8") as f: f.write(selector_html)
-    print(f"✅ Selector Page Updated: {os.path.abspath(SELECTOR_PATH)}")
+    print(f"Selector Page Updated: {os.path.abspath(SELECTOR_PATH)}")
 
     # --- ASSETS ---
     try:
         shutil.copy("data/betting_history.csv", "docs/ledger.csv")
-        print("✅ Ledger copied to docs/ledger.csv")
+        print("Ledger copied to docs/ledger.csv")
     except Exception as e:
-        print(f"⚠️ Could not copy ledger: {e}")
+        print(f"Could not copy ledger: {e}")
 
     webbrowser.open(f"file://{os.path.abspath(SELECTOR_PATH)}")

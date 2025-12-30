@@ -1,0 +1,16 @@
+Downloading Data (2018-2025)...
+2018 done.
+2019 done.
+2020 done.
+2021 done.
+2022 done.
+2023 done.
+2024 done.
+2025 done.
+Downcasting floats.
+Cleaning Data...
+Aggregating Base Stats...
+Fetching Injury Data...
+Error processing injuries: HTTP Error 404: Not Found
+Extracting Historical QB Starters...
+Data Ingestion Complete. Saved to data/nfl_db_v2.pkl

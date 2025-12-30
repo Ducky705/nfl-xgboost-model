@@ -1,4 +1,7 @@
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pickle
 import pandas as pd
 import numpy as np
@@ -9,22 +12,31 @@ import src.features as v2_features
 
 # --- CONFIG ---
 CACHE_PATH_V2 = "data/nfl_db_v2.pkl"
-MODEL_SPREAD_PATH = "models/v2_spread.json"
-MODEL_TOTAL_PATH = "models/v2_total.json"
-MODEL_ML_PATH = "models/v2_moneyline.json"
+# V3 Ensemble Models (Renamed from v4)
+MODEL_SPREAD_PATH = "models/v3_ensemble_stack.pkl"
+MODEL_SPREAD_FEATURES = "models/v3_features.pkl"
+MODEL_TOTAL_PATH = "models/v3_total_stack.pkl"
+MODEL_TOTAL_FEATURES = "models/v3_total_features.pkl"
+MODEL_ML_PATH = "models/v3_moneyline_stack.pkl"
+MODEL_ML_FEATURES = "models/v3_moneyline_features.pkl"
 HISTORY_PATH = "data/betting_history.csv"
 BACKUP_PATH = "data/betting_history_backup.csv"
 
-# --- KELLY LOGIC (V3.2 - Balanced Volume/Profit) ---
+
+# --- KELLY LOGIC (V3 - Optuna-Optimized) ---
 def calculate_kelly_units(abs_edge):
-    """Calculates Kelly Unit size based on point spread edge."""
+    """Calculates Kelly Unit size based on point spread edge.
+    
+    V3 - Manually Tuned for High ROI/Quality (User Pref).
+    """
     STD_DEV = 12.53 
     PAYOUT_RATIO = 0.9091
-    # V3.2: Balanced from sweep - 3.5 optimal for volume with profit
-    MIN_EDGE = 3.5
-    MAX_UNITS = 5.0
-    KELLY_FRACTION = 0.10  # V3.2: More conservative
-
+    
+    # V3 Manual Adjustments (Restoring 32-22-0 Sweet Spot)
+    MIN_EDGE = 3.5    # Loosened from 3.6
+    MAX_UNITS = 2.0
+    KELLY_FRACTION = 0.035
+    
     if abs_edge < MIN_EDGE:
         return 0.0, "None"
 
@@ -44,14 +56,18 @@ def calculate_kelly_units(abs_edge):
     return units, conf
 
 def calculate_totals_kelly(abs_edge):
-    """Calculates Kelly Unit size for TOTALS."""
+    """Calculates Kelly Unit size for TOTALS.
+    
+    V3 - Manually Tuned for Positive ROI (Safety First).
+    """
     STD_DEV = 13.5
     PAYOUT_RATIO = 0.9091
-    # V3.2: Confirmed optimal
-    MIN_EDGE = 4.8
-    MAX_UNITS = 4.8
-    KELLY_FRACTION = 0.21
-
+    
+    # V3 Manual Adjustment (Emergency Fix)
+    MIN_EDGE = 4.5    
+    MAX_UNITS = 2.0
+    KELLY_FRACTION = 0.05
+    
     if abs_edge < MIN_EDGE:
         return 0.0, "None"
 
@@ -70,11 +86,23 @@ def calculate_totals_kelly(abs_edge):
         
     return units, conf
 
+
 def calculate_moneyline_kelly(model_prob, vegas_prob, vegas_odds):
-    """Calculates Kelly Unit size for MONEYLINE using probability-based EV."""
-    # V3.2: Balanced 5% edge threshold
-    MIN_EDGE = 0.05
-    MAX_UNITS = 3.0
+    """Calculates Kelly Unit size for MONEYLINE using probability-based EV.
+    
+    V3 - Optuna-Optimized for ROI with min 15 bets.
+    (Reverted to user-preferred settings)
+    """
+    # V3 Optuna-Optimized Parameters (ROI-focused, min 15 bets)
+    MIN_EDGE = 0.0503  # 5.03% edge threshold
+    MAX_UNITS = 2.0   # Cap
+    MIN_ODDS = -134   # Optuna optimal
+    MAX_ODDS = 127    # Optuna optimal (tighter range = higher quality)
+    KELLY_FRACTION = 2.91  # Optuna optimal
+    
+    # 1. Odds Filter
+    if vegas_odds < MIN_ODDS or vegas_odds > MAX_ODDS:
+        return 0.0, "None"
     
     edge = model_prob - vegas_prob
     
@@ -91,18 +119,20 @@ def calculate_moneyline_kelly(model_prob, vegas_prob, vegas_odds):
     q = 1 - p
     
     kelly_fraction = (b * p - q) / b if b > 0 else 0
-    # V3.2: Kelly fraction 0.12
-    units = round(min(max(0, kelly_fraction * 0.12), MAX_UNITS), 1)
+    # V3.0: Optuna-Optimized Kelly
+    units = round(min(max(0, kelly_fraction * KELLY_FRACTION), MAX_UNITS), 1)
     
     if units > 0:
-        conf = "SOLID" if edge >= 0.10 else "LEAN"
+        conf = "SOLID" if edge >= 0.15 else "LEAN"
     else:
         conf = "None"
         
     return units, conf
 
+
+
 def run_simulation():
-    print("🚀 Starting Protocol 705 V3.2 Simulation...")
+    print("🚀 Starting Protocol 705 V4 Simulation...")
     
     # 1. Load Data
     if not os.path.exists(CACHE_PATH_V2):
@@ -116,22 +146,23 @@ def run_simulation():
     base_stats = db['base_stats']
     injury_stats = db['injury_stats']
     
-    # 2. Load Models
-    print("Loading V3.2 Models...")
-    spread_model = xgb.Booster()
-    spread_model.load_model(MODEL_SPREAD_PATH)
-    total_model = xgb.Booster()
-    total_model.load_model(MODEL_TOTAL_PATH)
-    ml_model = xgb.XGBClassifier()
-    ml_model.load_model(MODEL_ML_PATH)
+    # 2. Load V4 Ensemble Models
+    print("Loading V4 Ensemble Models...")
+    with open(MODEL_SPREAD_PATH, 'rb') as f:
+        spread_model = pickle.load(f)
+    with open(MODEL_SPREAD_FEATURES, 'rb') as f:
+        spread_features = pickle.load(f)
     
-    # Get Feature Names
-    spread_features = spread_model.feature_names
-    total_features = total_model.feature_names
-    try:
-        ml_features = ml_model.feature_names
-    except:
-        ml_features = ml_model.get_booster().feature_names
+    with open(MODEL_TOTAL_PATH, 'rb') as f:
+        total_model = pickle.load(f)
+    with open(MODEL_TOTAL_FEATURES, 'rb') as f:
+        total_features = pickle.load(f)
+    
+    with open(MODEL_ML_PATH, 'rb') as f:
+        ml_model = pickle.load(f)
+    with open(MODEL_ML_FEATURES, 'rb') as f:
+        ml_features = pickle.load(f)
+
 
     # 3. Determine Weeks to Simulate
     # We want to simulate all completed games in the current season (where result is not NaN)
@@ -151,7 +182,7 @@ def run_simulation():
     # Note: treating "future" info is tricky. The pipeline uses "shift(1)" so it SHOULD be safe 
     # if we pass the full schedule.
     print("Running Engineering Pipeline...")
-    full_games = v2_features.engineering_pipeline(schedule, base_stats, injury_stats)
+    full_games = v2_features.engineering_pipeline(db)
     
     total_profit = 0.0
     
@@ -179,19 +210,19 @@ def run_simulation():
             # --- PREDICTION ---
             row_df = pd.DataFrame([game])
             
-            # Spread Pred
+            # Spread Pred (v4 VotingEnsemble - uses DataFrame)
             for c in spread_features:
                 if c not in row_df.columns: row_df[c] = 0
-            X_spread = xgb.DMatrix(row_df[spread_features])
+            X_spread = row_df[spread_features]
             pred_margin = spread_model.predict(X_spread)[0] # Home Margin
             
-            # Total Pred
+            # Total Pred (v4 VotingEnsemble - uses DataFrame)
             for c in total_features:
                 if c not in row_df.columns: row_df[c] = 0
-            X_total = xgb.DMatrix(row_df[total_features])
+            X_total = row_df[total_features]
             pred_total = total_model.predict(X_total)[0]
             
-            # ML Pred
+            # ML Pred (v4 VotingEnsemble - uses DataFrame)
             for c in ml_features:
                 if c not in row_df.columns: row_df[c] = 0
             X_ml = row_df[ml_features]
@@ -253,6 +284,14 @@ def run_simulation():
                     
                     total_profit += profit
                     
+                    # Calculate line string for display
+                    if pick_team == game['home_team']:
+                        line_str = f"{pick_team} {home_spread:+.1f}"
+                        fair_line_str = f"{pick_team} {-pred_margin:+.1f}" # Fixed: Negate for betting notation
+                    else:
+                        line_str = f"{pick_team} {raw_away_spread:+.1f}"
+                        fair_line_str = f"{pick_team} {pred_margin:+.1f}" # Fixed: Keep prob margin for Away (Home - Away)
+                    
                     history_records.append({
                         'season': current_season,
                         'week': week,
@@ -262,6 +301,8 @@ def run_simulation():
                         'away': game['away_team'],
                         'type': 'spread',
                         'pick_team': pick_team,
+                        'line': line_str,
+                        'fair_value': fair_line_str,
                         'units': units,
                         'status': 'GRADED',
                         'result': result,
@@ -305,6 +346,9 @@ def run_simulation():
                         
                     total_profit += profit
                     
+                    line_str = f"{pick_type} {raw_total}"
+                    fair_line_str = f"{pick_type} {fair_total:.1f}"
+                    
                     history_records.append({
                         'season': current_season,
                         'week': week,
@@ -314,6 +358,8 @@ def run_simulation():
                         'away': game['away_team'],
                         'type': 'total',
                         'pick_team': pick_type,
+                        'line': line_str,
+                        'fair_value': fair_line_str,
                         'units': units_total,
                         'status': 'GRADED',
                         'result': result,
@@ -373,6 +419,17 @@ def run_simulation():
                         
                     total_profit += profit
                     
+                    # Calculate fair odds from model probability
+                    pick_prob = prob_home_win if pick_team == game['home_team'] else prob_away_win
+                    if pick_prob >= 0.5:
+                        fair_odds = int(-1 * (100 * pick_prob) / (1 - pick_prob)) if pick_prob < 0.99 else -10000
+                    else:
+                        fair_odds = int((100 * (1 - pick_prob)) / pick_prob) if pick_prob > 0.01 else 10000
+                    
+                    def fmt_odds(o): return f"+{int(o)}" if o > 0 else f"{int(o)}"
+                    line_str = f"{pick_team} {fmt_odds(pick_odds)}"
+                    fair_line_str = f"{pick_team} {fmt_odds(fair_odds)}"
+                    
                     history_records.append({
                         'season': current_season,
                         'week': week,
@@ -382,6 +439,8 @@ def run_simulation():
                         'away': game['away_team'],
                         'type': 'moneyline',
                         'pick_team': pick_team + " ML",
+                        'line': line_str,
+                        'fair_value': fair_line_str,
                         'units': units_ml,
                         'status': 'GRADED',
                         'result': result,

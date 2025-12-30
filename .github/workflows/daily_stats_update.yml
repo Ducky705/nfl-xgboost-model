@@ -1,0 +1,55 @@
+name: Daily Stats Update
+
+on:
+  schedule:
+    # Run daily at 10:00 AM UTC (adjust as needed)
+    - cron: '0 10 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Decrypt Models
+      env:
+        MODEL_ENCRYPTION_KEY: ${{ secrets.MODEL_ENCRYPTION_KEY }}
+      run: |
+        if [ -z "$MODEL_ENCRYPTION_KEY" ]; then
+          echo "Error: MODEL_ENCRYPTION_KEY secret is not set."
+          exit 1
+        fi
+        python scripts/model_security.py decrypt
+
+    - name: Run Main Script (Update Stats)
+      run: |
+        python main.py
+
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add docs/ data/
+        # Only commit if there are changes
+        if git diff --staged --quiet; then
+          echo "No changes to commit."
+        else
+          git commit -m "Automated daily stats update"
+          git push
+        fi

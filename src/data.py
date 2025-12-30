@@ -16,7 +16,7 @@ CURRENT_SEASON = now.year if now.month > 2 else now.year - 1
 YEARS = list(range(2018, CURRENT_SEASON + 1))
 
 def process_injuries(years):
-    print("🚑 Fetching Injury Data...")
+    print("Fetching Injury Data...")
     try:
         injuries = nfl.import_injuries(years)
         # Filter for relevant positions and statuses
@@ -45,11 +45,11 @@ def process_injuries(years):
         
         return injury_features
     except Exception as e:
-        print(f"⚠️ Error processing injuries: {e}")
+        print(f"Error processing injuries: {e}")
         return pd.DataFrame()
 
 def get_base_stats(df, full_pbp):
-    print("📊 Aggregating Base Stats...")
+    print("Aggregating Base Stats...")
     # 1. General Offense
     gen = df.groupby(['season', 'week', 'posteam']).agg({
         'epa': 'mean', 
@@ -106,14 +106,42 @@ def get_base_stats(df, full_pbp):
     
     return merged.fillna(0)
 
+def get_historic_starters(pbp):
+    """
+    Identifies the QB starter for each game based on majority of dropbacks.
+    Returns DataFrame: [season, week, team, qb_name, qb_id]
+    """
+    print("Extracting Historical QB Starters...")
+    
+    # Filter for Pass Plays or Sacks (Dropbacks)
+    dropbacks = pbp[
+        (pbp['play_type'].isin(['pass', 'run'])) & 
+        (pbp['qb_dropback'] == 1) &
+        (~pbp['name'].isna())
+    ].copy()
+    
+    # Count dropbacks per QB per game
+    qb_counts = dropbacks.groupby(['season', 'week', 'posteam', 'name', 'passer_id']).size().reset_index(name='dropbacks')
+    
+    # Sort by dropbacks descending
+    qb_counts = qb_counts.sort_values(['season', 'week', 'posteam', 'dropbacks'], ascending=[True, True, True, False])
+    
+    # Take top QB per game
+    starters = qb_counts.drop_duplicates(subset=['season', 'week', 'posteam'], keep='first')
+    
+    # Rename for consistency
+    starters = starters.rename(columns={'posteam': 'team', 'name': 'qb_name', 'passer_id': 'qb_id'})
+    
+    return starters[['season', 'week', 'team', 'qb_name', 'qb_id']]
+
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
     
-    print(f"📥 Downloading Data ({min(YEARS)}-{max(YEARS)})...")
+    print(f"Downloading Data ({min(YEARS)}-{max(YEARS)})...")
     schedule = nfl.import_schedules(YEARS)
     pbp = nfl.import_pbp_data(YEARS)
     
-    print("⚙️  Cleaning Data...")
+    print("Cleaning Data...")
     pbp['posteam'] = pbp['posteam'].replace(TEAM_MAP)
     pbp['defteam'] = pbp['defteam'].replace(TEAM_MAP)
     
@@ -123,17 +151,19 @@ if __name__ == "__main__":
     # Get Stats
     base_stats = get_base_stats(pbp_clean, pbp)
     injury_stats = process_injuries(YEARS)
+    qb_starters = get_historic_starters(pbp)
     
     # Save Raw Data Components
     raw_data = {
         'schedule': schedule,
         'base_stats': base_stats,
         'injury_stats': injury_stats,
-        'pbp_clean': pbp_clean[['season', 'week', 'posteam', 'defteam', 'epa', 'play_type']], # Keep lightweight
+        'qb_starters': qb_starters,
+        'pbp_clean': pbp_clean[['season', 'week', 'posteam', 'defteam', 'epa', 'play_type', 'passer_id', 'name']], # Keep lightweight but carry QB identifiers
         'timestamp': datetime.now()
     }
     
     with open(CACHE_PATH_V2, 'wb') as f:
         pickle.dump(raw_data, f)
         
-    print(f"✅ Data Ingestion Complete. Saved to {CACHE_PATH_V2}")
+    print(f"Data Ingestion Complete. Saved to {CACHE_PATH_V2}")
