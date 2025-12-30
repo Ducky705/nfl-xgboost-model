@@ -348,6 +348,51 @@ def run_predictions(db, spread_model, total_model, ml_model, override_week=None,
         pred_margin = spread_model.predict(X_spread)[0] # Home Margin
         pred_total = total_model.predict(X_total)[0]    # Total Score
 
+        # --- EXPLAINABILITY (FEATURE CONTRIBUTIONS) ---
+        try:
+            # Spread Contributions
+            spread_contribs_df = spread_model.get_feature_contributions(X_spread)
+            if not spread_contribs_df.empty:
+                s_contribs = spread_contribs_df.iloc[0].sort_values(ascending=False)
+                # Propelling (Positive for Home, Negative for Away? No, dependent on variable direction)
+                # Model predicts Home Margin. Positive contrib = Helps Home Cover / Wins. Negative = Helps Away.
+                
+                # We want "Factors favoring Home" vs "Factors favoring Away"
+                # Positive SHAP = Pushes Margin UP (Favor Home).
+                # Negative SHAP = Pushes Margin DOWN (Favor Away).
+                
+                factors_home = s_contribs[s_contribs > 0].head(5).to_dict()
+                factors_away = s_contribs[s_contribs < 0].sort_values().head(5).to_dict() # sort_values() puts most negative first
+                
+                # Format for template
+                # List of {name: "Feature", val: +0.5}
+                spread_factors = {
+                    'home': [{'name': k, 'val': round(v, 2)} for k, v in factors_home.items()],
+                    'away': [{'name': k, 'val': abs(round(v, 2))} for k, v in factors_away.items()]
+                }
+            else:
+                spread_factors = {'home': [], 'away': []}
+                
+            # Total Contributions
+            total_contribs_df = total_model.get_feature_contributions(X_total)
+            if not total_contribs_df.empty:
+                t_contribs = total_contribs_df.iloc[0].sort_values(ascending=False)
+                # Positive = Over, Negative = Under
+                factors_over = t_contribs[t_contribs > 0].head(5).to_dict()
+                factors_under = t_contribs[t_contribs < 0].sort_values().head(5).to_dict()
+                
+                total_factors = {
+                    'over': [{'name': k, 'val': round(v, 2)} for k, v in factors_over.items()],
+                    'under': [{'name': k, 'val': abs(round(v, 2))} for k, v in factors_under.items()]
+                }
+            else:
+                total_factors = {'over': [], 'under': []}
+                
+        except Exception as e:
+            print(f"Explainability Error: {e}")
+            spread_factors = {'home': [], 'away': []}
+            total_factors = {'over': [], 'under': []}
+
         
         fair_line = max(min(pred_margin, 25), -25)
         fair_total = max(min(pred_total, 70), 20)
@@ -416,7 +461,8 @@ def run_predictions(db, spread_model, total_model, ml_model, override_week=None,
                 'week': next_week,
                 'type': 'spread',
                 'home': game['home_team'],
-                'away': game['away_team']
+                'away': game['away_team'],
+                'factors': spread_factors  # Attach factors
             })
 
         # --- TOTAL BETTING ---
@@ -454,13 +500,37 @@ def run_predictions(db, spread_model, total_model, ml_model, override_week=None,
                 'week': next_week,
                 'type': 'total',
                 'home': game['home_team'],
-                'away': game['away_team']
+                'away': game['away_team'],
+                'factors': total_factors # Attach factors
             })
 
         # --- MONEYLINE BETTING (Evaluate BOTH Home and Away) ---
         if 'home_moneyline' in game and not pd.isna(game['home_moneyline']) and 'away_moneyline' in game and not pd.isna(game['away_moneyline']):
             # Predict Probabilities
             prob_home_win = ml_model.predict_proba(X_ml)[0][1]
+            
+            # --- MONEYLINE EXPLAINABILITY ---
+            try:
+                ml_contribs_df = ml_model.get_feature_contributions(X_ml)
+                if not ml_contribs_df.empty:
+                    m_contribs = ml_contribs_df.iloc[0].sort_values(ascending=False)
+                    # Positive = Increases Home Win Prob (Factors favoring Home)
+                    # Negative = Decreases Home Win Prob (Factors favoring Away)
+                    
+                    factors_ml_home = m_contribs[m_contribs > 0].head(5).to_dict()
+                    factors_ml_away = m_contribs[m_contribs < 0].sort_values().head(5).to_dict()
+                    
+                    ml_factors = {
+                        'home': [{'name': k, 'val': round(v, 2)} for k, v in factors_ml_home.items()],
+                        'away': [{'name': k, 'val': abs(round(v, 2))} for k, v in factors_ml_away.items()]
+                    }
+                else:
+                    ml_factors = {'home': [], 'away': []}
+            except Exception as e:
+                print(f"ML Explainability Error: {e}")
+                ml_factors = {'home': [], 'away': []}
+
+            prob_away_win = 1 - prob_home_win
             prob_away_win = 1 - prob_home_win
             
             vegas_ml_home = game['home_moneyline']
@@ -548,7 +618,8 @@ def run_predictions(db, spread_model, total_model, ml_model, override_week=None,
                 'week': next_week,
                 'type': 'moneyline',
                 'home': game['home_team'],
-                'away': game['away_team']
+                'away': game['away_team'],
+                'factors': ml_factors
             })
         
     return preds, next_week

@@ -282,7 +282,8 @@
                 {% for game in active_bets %}
 
                 <!-- Using delay loop index for unique animation timing -->
-                <div data-confidence="{{ game.clean_conf|lower if game.clean_conf else 'lean' }}"
+                <div onclick="toggleDetails(this)"
+                    data-confidence="{{ game.clean_conf|lower if game.clean_conf else 'lean' }}"
                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
                     style="animation-delay: {{ 800 + loop.index * 100 }}ms">
 
@@ -329,6 +330,64 @@
                             </button>
                         </div>
                         {% endif %}
+                    </div>
+                </div>
+
+                <!-- EXPANDABLE DETAILS -->
+                <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
+                    style="animation-delay: {{ 800 + loop.index * 100 + 50 }}ms">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- FAVORING OVER -->
+                        <div>
+                            <h4
+                                class="font-mono text-[10px] text-orion-blue uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
+                                Favoring OVER</h4>
+                            <div class="space-y-2">
+                                {% for factor in game.factors.over %}
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">{{ factor.name }}</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: {{ (factor.val / 1.0) * 100 }}%"></div>
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">{{
+                                            "+%.1f"|format(factor.val) }}</span>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="text-zinc-600 text-[10px] font-mono italic">No significant factors detected.
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- FAVORING UNDER -->
+                        <div>
+                            <h4
+                                class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
+                                Favoring UNDER</h4>
+                            <div class="space-y-2">
+                                {% for factor in game.factors.under %}
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">{{ factor.name }}</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: {{ (factor.val / 1.0) * 100 }}%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">{{
+                                            "%.1f"|format(factor.val) }}</span>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="text-zinc-600 text-[10px] font-mono italic">No significant factors detected.
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -545,6 +604,21 @@
 
         window.addEventListener('resize', resize);
         window.onload = initParticles;
+
+        function toggleDetails(row) {
+            const details = row.nextElementSibling;
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                // Trigger animation reset if it has animation class
+                if (details.classList.contains('animate-enter')) {
+                    details.style.animation = 'none';
+                    details.offsetHeight; /* trigger reflow */
+                    details.style.animation = 'slideUpFade 0.5s forwards';
+                }
+            } else {
+                details.classList.add('hidden');
+            }
+        }
     </script>
 </body>
 
