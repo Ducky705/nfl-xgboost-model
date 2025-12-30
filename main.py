@@ -657,20 +657,46 @@ if __name__ == "__main__":
                     # Format week display
                     r['week_str'] = f"W{r.get('week', '')}"
                     
-                    # Format Line display (for templates)
+                    # Format Line and Edge display (for templates)
                     line_val = r.get('line', '')
-                    if line_val != '' and pd.notna(line_val):
-                        r['home_spread_str'] = f"{float(line_val):+.1f}" if float(line_val) != 0 else "0"
-                    else:
-                        r['home_spread_str'] = ''
-                    
-                    # Format Edge display (for templates)
                     fair_val = r.get('fair_value', '')
-                    if line_val != '' and fair_val != '' and pd.notna(line_val) and pd.notna(fair_val):
-                        edge = abs(float(fair_val) - float(line_val))
-                        r['edge_val'] = f"+{edge:.1f}%"
-                    else:
-                        r['edge_val'] = ''
+                    bet_type = r.get('type', '')
+                    
+                    # Default values
+                    r['home_spread_str'] = ''
+                    r['edge_val'] = ''
+                    
+                    if line_val != '' and pd.notna(line_val):
+                        if bet_type == 'moneyline':
+                            # Moneyline: line is like "TB -115", fair_value is like "TB -144"
+                            r['home_spread_str'] = str(line_val)
+                            # Extract odds from fair_value and line to calculate edge
+                            try:
+                                line_odds = int(str(line_val).split()[-1])
+                                fair_odds = int(str(fair_val).split()[-1])
+                                # Convert odds to implied probability and calculate edge
+                                def odds_to_prob(odds):
+                                    if odds < 0:
+                                        return abs(odds) / (abs(odds) + 100)
+                                    else:
+                                        return 100 / (odds + 100)
+                                line_prob = odds_to_prob(line_odds)
+                                fair_prob = odds_to_prob(fair_odds)
+                                edge = abs(fair_prob - line_prob) * 100
+                                r['edge_val'] = f"+{edge:.1f}%"
+                            except:
+                                r['edge_val'] = ''
+                        else:
+                            # Spread/Total: line is a number like 45.5 or -3.5
+                            try:
+                                line_num = float(line_val)
+                                r['home_spread_str'] = f"{line_num:+.1f}" if line_num != 0 else "0"
+                                if fair_val != '' and pd.notna(fair_val):
+                                    fair_num = float(fair_val)
+                                    edge = abs(fair_num - line_num)
+                                    r['edge_val'] = f"+{edge:.1f}%"
+                            except:
+                                r['home_spread_str'] = str(line_val)
                     
                 except Exception:
                     r['opponent'] = ''
