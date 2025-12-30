@@ -328,7 +328,7 @@ See the full suite of "Billion Dollar" assets below.
 
 | **System Evolution** | **Feature Architecture** |
 |:---:|:---:|
-| ![Evo](assets/research/architecture/evolution_map.png) | ![Arch](assets/research/architecture/orion_feature_architecture_1767103643034.png) |
+| ![Evo](assets/research/architecture/evolution_map.png) | ![Arch](assets/research/architecture/hyper_orthogonality.png) |
 
 | **Pace Physics** | **Calibration Alpha** |
 |:---:|:---:|
