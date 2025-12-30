@@ -272,10 +272,10 @@
                     <!-- UPCOMING EDGE -->
                     <div
                         class="bg-black/40 p-4 border border-zinc-800 rounded-sm group-hover:border-orion-main/30 transition-colors">
-                        <div class="text-zinc-500 text-[10px] uppercase mb-1">Upcoming Edge (Wk 17)</div>
+                        <div class="text-zinc-500 text-[10px] uppercase mb-1">Upcoming Edge (Wk {{ next_week }})</div>
                         <div
                             class="text-2xl text-white font-bold group-hover:text-orion-main transition-colors flex items-baseline gap-2">
-                            +0.0u <span class="text-xs font-normal text-zinc-400">Proj. Alpha</span>
+                            +{{ orion_alpha }}u <span class="text-xs font-normal text-zinc-400">Proj. Alpha</span>
                         </div>
                     </div>
 
@@ -283,11 +283,13 @@
                     <div class="flex justify-between items-end border-b border-zinc-800 pb-3">
                         <div>
                             <div class="text-zinc-600 text-[10px] uppercase mb-1">Season Performance</div>
-                            <div class="text-white text-base">32-22-0 <span class="text-green-400">(59.3%)</span></div>
+                            <div class="text-white text-base">{{ orion_record }} <span class="text-green-400">({{
+                                    orion_win_pct }}%)</span></div>
                         </div>
                         <div class="text-right">
                             <div class="text-zinc-600 text-[10px] uppercase mb-1">Season ROI</div>
-                            <div class="text-orion-main text-base font-bold">+16.3%</div>
+                            <div class="text-orion-main text-base font-bold">{{ "+" if orion_roi > 0 else ""}}{{
+                                orion_roi }}%</div>
                         </div>
                     </div>
 
@@ -339,10 +341,10 @@
                     <!-- UPCOMING EDGE -->
                     <div
                         class="bg-black/40 p-4 border border-zinc-800 rounded-sm group-hover:border-pulsar-main/30 transition-colors">
-                        <div class="text-zinc-500 text-[10px] uppercase mb-1">Upcoming Edge (Wk 17)</div>
+                        <div class="text-zinc-500 text-[10px] uppercase mb-1">Upcoming Edge (Wk {{ next_week }})</div>
                         <div
                             class="text-2xl text-white font-bold group-hover:text-pulsar-main transition-colors flex items-baseline gap-2">
-                            +0.0u <span class="text-xs font-normal text-zinc-400">Proj. Alpha</span>
+                            +{{ pulsar_alpha }}u <span class="text-xs font-normal text-zinc-400">Proj. Alpha</span>
                         </div>
                     </div>
 
@@ -350,11 +352,13 @@
                     <div class="flex justify-between items-end border-b border-zinc-800 pb-3">
                         <div>
                             <div class="text-zinc-600 text-[10px] uppercase mb-1">Season Performance</div>
-                            <div class="text-white text-base">12-8-0 <span class="text-green-400">(60.0%)</span></div>
+                            <div class="text-white text-base">{{ pulsar_record }} <span class="text-green-400">({{
+                                    pulsar_win_pct }}%)</span></div>
                         </div>
                         <div class="text-right">
                             <div class="text-zinc-600 text-[10px] uppercase mb-1">Season ROI</div>
-                            <div class="text-pulsar-main text-base font-bold">+15.9%</div>
+                            <div class="text-pulsar-main text-base font-bold">{{ "+" if pulsar_roi > 0 else ""}}{{
+                                pulsar_roi }}%</div>
                         </div>
                     </div>
 
@@ -405,10 +409,10 @@
                     <!-- UPCOMING EDGE -->
                     <div
                         class="bg-black/40 p-4 border border-zinc-800 rounded-sm group-hover:border-quasar-main/30 transition-colors">
-                        <div class="text-zinc-500 text-[10px] uppercase mb-1">Upcoming Edge (Wk 17)</div>
+                        <div class="text-zinc-500 text-[10px] uppercase mb-1">Upcoming Edge (Wk {{ next_week }})</div>
                         <div
                             class="text-2xl text-white font-bold group-hover:text-quasar-main transition-colors flex items-baseline gap-2">
-                            +0.0u <span class="text-xs font-normal text-zinc-400">Proj. Alpha</span>
+                            +{{ quasar_alpha }}u <span class="text-xs font-normal text-zinc-400">Proj. Alpha</span>
                         </div>
                     </div>
 
@@ -416,11 +420,13 @@
                     <div class="flex justify-between items-end border-b border-zinc-800 pb-3">
                         <div>
                             <div class="text-zinc-600 text-[10px] uppercase mb-1">Season Performance</div>
-                            <div class="text-white text-base">21-9-0 <span class="text-green-400">(70.0%)</span></div>
+                            <div class="text-white text-base">{{ quasar_record }} <span class="text-green-400">({{
+                                    quasar_win_pct }}%)</span></div>
                         </div>
                         <div class="text-right">
                             <div class="text-zinc-600 text-[10px] uppercase mb-1">Season ROI</div>
-                            <div class="text-quasar-main text-base font-bold">+15.2%</div>
+                            <div class="text-quasar-main text-base font-bold">{{ "+" if quasar_roi > 0 else ""}}{{
+                                quasar_roi }}%</div>
                         </div>
                     </div>
 

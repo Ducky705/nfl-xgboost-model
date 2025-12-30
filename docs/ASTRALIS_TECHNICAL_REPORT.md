@@ -3,7 +3,7 @@
 
 **Proprietary Research & Development Archive**
 **Classification**: TOP SECRET // ASTRALIS INTERNAL
-**Version**: 3.5.0 (The Anthology)
+**Version**: 3.4.1 (The Anthology)
 **Epoch**: 2022 - Present
 
 ---

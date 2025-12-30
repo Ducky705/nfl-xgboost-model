@@ -122,7 +122,7 @@
     </style>
 </head>
 
-<body class="min-h-screen relative overflow-x-hidden selection:bg-orion-blue selection:text-white">
+<body class="min-h-screen relative overflow-x-hidden selection:bg-quasar-orange selection:text-black">
     <!-- BACKGROUND LAYERS -->
     <canvas id="bg-canvas"></canvas>
     <div class="fixed inset-0 bg-void z-[-2]"></div>
@@ -154,7 +154,7 @@
                     <span class="font-mono text-xs text-orion-blue tracking-widest">LIVE SIGNAL</span>
                 </div>
                 <h1 class="text-5xl md:text-7xl font-bold tracking-tighter text-white">QUASAR <span
-                        class="text-ghost">v3.0</span></h1>
+                        class="text-ghost">v3.4.1</span></h1>
                 <p class="font-mono text-zinc-500 mt-2 text-sm uppercase tracking-wide">XGBoost Algorithmic
                     Infrastructure</p>
             </div>
@@ -206,7 +206,7 @@
             <div class="bg-panel border border-border-dim p-6 flex flex-col justify-between h-32 hover:border-orion-blue transition-all duration-500 group opacity-0 animate-enter"
                 style="animation-delay: 400ms;">
                 <div class="flex justify-between items-start">
-                    <span class="font-mono text-[10px] tracking-widest text-zinc-400 uppercase">ASTRALIS</span>
+                    <span class="font-mono text-xs text-zinc-500 uppercase">W - L - T</span>
                     <svg class="w-4 h-4 text-orion-blue opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 duration-300"
                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -331,7 +331,7 @@
                             <th class="p-4 font-normal">Week</th>
                             <th class="p-4 font-normal">Matchup</th>
                             <th class="p-4 font-normal text-right">Line</th>
-                            <th class="p-4 font-normal text-right">Fair Value</th>
+                            <th class="p-4 font-normal text-right">Edge</th>
                             <th class="p-4 font-normal text-center">Position</th>
                             <th class="p-4 font-normal text-center">Result</th>
                             <th class="p-4 font-normal text-right">P&L</th>
@@ -345,10 +345,10 @@
                                 NO <span class="text-zinc-600">@</span> TEN
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                NO -120
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                NO -155
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 NO ML
@@ -370,10 +370,10 @@
                                 HOU <span class="text-zinc-600">@</span> LAC
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                LAC -118
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                LAC -189
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 LAC ML
@@ -395,10 +395,10 @@
                                 LA <span class="text-zinc-600">@</span> SEA
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                LA +102
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                LA -148
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 LA ML
@@ -420,10 +420,10 @@
                                 WAS <span class="text-zinc-600">@</span> NYG
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                WAS +124
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                WAS -160
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 WAS ML
@@ -445,10 +445,10 @@
                                 PHI <span class="text-zinc-600">@</span> LAC
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                LAC +100
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                LAC -143
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 LAC ML
@@ -470,10 +470,10 @@
                                 WAS <span class="text-zinc-600">@</span> MIN
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                WAS -115
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                WAS -496
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 WAS ML
@@ -495,10 +495,10 @@
                                 CLE <span class="text-zinc-600">@</span> NYJ
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                NYJ +110
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                NYJ -190
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 NYJ ML
@@ -520,10 +520,10 @@
                                 NE <span class="text-zinc-600">@</span> TB
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                NE +124
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                NE -104
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 NE ML
@@ -545,10 +545,10 @@
                                 PHI <span class="text-zinc-600">@</span> GB
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                GB -110
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                GB -186
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 GB ML
@@ -570,10 +570,10 @@
                                 JAX <span class="text-zinc-600">@</span> LV
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                JAX -130
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                JAX -199
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 JAX ML
@@ -595,10 +595,10 @@
                                 DEN <span class="text-zinc-600">@</span> HOU
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                HOU -125
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                HOU -310
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 HOU ML
@@ -620,10 +620,10 @@
                                 ATL <span class="text-zinc-600">@</span> SF
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                SF -115
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                SF -142
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 SF ML
@@ -645,10 +645,10 @@
                                 WAS <span class="text-zinc-600">@</span> DAL
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                WAS +105
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                WAS -236
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 WAS ML
@@ -670,10 +670,10 @@
                                 SEA <span class="text-zinc-600">@</span> JAX
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                SEA -115
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                SEA -176
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 SEA ML
@@ -695,10 +695,10 @@
                                 NYG <span class="text-zinc-600">@</span> NO
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                NO -120
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                NO -164
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 NO ML
@@ -720,10 +720,10 @@
                                 MIA <span class="text-zinc-600">@</span> CAR
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                CAR +100
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                CAR -124
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 CAR ML
@@ -745,10 +745,10 @@
                                 HOU <span class="text-zinc-600">@</span> BAL
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                BAL +124
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                BAL -135
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 BAL ML
@@ -770,10 +770,10 @@
                                 MIN <span class="text-zinc-600">@</span> PIT
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                PIT +124
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                PIT -152
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 PIT ML
@@ -795,10 +795,10 @@
                                 SEA <span class="text-zinc-600">@</span> ARI
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                SEA -125
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                SEA -213
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 SEA ML
@@ -820,10 +820,10 @@
                                 NYJ <span class="text-zinc-600">@</span> MIA
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                NYJ +124
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                NYJ -140
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 NYJ ML
@@ -845,10 +845,10 @@
                                 HOU <span class="text-zinc-600">@</span> JAX
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                JAX -125
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                JAX -324
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 JAX ML
@@ -870,10 +870,10 @@
                                 PIT <span class="text-zinc-600">@</span> NE
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                PIT -120
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                PIT -208
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 PIT ML
@@ -895,10 +895,10 @@
                                 ARI <span class="text-zinc-600">@</span> SF
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                SF -125
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                SF -177
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 SF ML
@@ -920,10 +920,10 @@
                                 DAL <span class="text-zinc-600">@</span> CHI
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                DAL -125
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                DAL -191
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 DAL ML
@@ -945,10 +945,10 @@
                                 NE <span class="text-zinc-600">@</span> MIA
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                NE +105
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                NE -202
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 NE ML
@@ -970,10 +970,10 @@
                                 PHI <span class="text-zinc-600">@</span> KC
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                PHI -122
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                PHI -246
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 PHI ML
@@ -995,10 +995,10 @@
                                 TB <span class="text-zinc-600">@</span> HOU
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                TB +114
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                TB -137
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 TB ML
@@ -1020,10 +1020,10 @@
                                 DEN <span class="text-zinc-600">@</span> IND
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                IND +110
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                IND -136
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 IND ML
@@ -1045,10 +1045,10 @@
                                 TB <span class="text-zinc-600">@</span> ATL
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                TB -115
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                TB -144
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 TB ML
@@ -1070,10 +1070,10 @@
                                 DET <span class="text-zinc-600">@</span> GB
                             </td>
                             <td class="p-4 text-right text-zinc-300">
-                                GB -120
+                                <span class="text-zinc-500"></span>
                             </td>
                             <td class="p-4 text-right text-orion-blue">
-                                GB -148
+                                
                             </td>
                             <td class="p-4 text-center font-bold text-white">
                                 GB ML
