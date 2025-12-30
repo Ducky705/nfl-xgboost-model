@@ -109,23 +109,13 @@ For detailed MLOps and Infrastructure specs, please consult **Section 7** of the
 
 ---
 
-## 🔒 DECRYPTION GUIDE
-If you have cloned this repository and possess the `MODEL_ENCRYPTION_KEY`, you can decrypt the trained models for local use.
+## 🏗️ REPOSITORY ARCHITECTURE
+This project uses a **Two-Repository Strategy** to protect proprietary intellectual property while keeping the code and research public.
 
-1. **Set the Key**:
-   ```bash
-   # Option A: Set as Environment Variable (Recommended)
-   export MODEL_ENCRYPTION_KEY="your-secret-key-here"
-   
-   # Option B: Pass via Command Line (See below)
-   ```
+1.  **Public Repository** (This Repo): Contains the codebase, documentation, and visualization engine.
+2.  **Private Vault** (`nfl-models-vault`): Contains the trained proprietary model files (`.pkl`, `.json`).
 
-2. **Run Decryption**:
-   ```bash
-   python scripts/model_security.py decrypt
-   # OR with manual flag
-   python scripts/model_security.py decrypt --key "your-secret-key-here"
-   ```
-
-3. **Verify**:
-   The `models/` directory will now contain `.json` and `.pkl` files.
+### ⚙️ Automation Setup (For Contributors)
+The automated daily updates utilize GitHub Actions to combine these two repositories:
+1.  **Secrets**: The workflow requires a `PRIVATE_MODELS_PAT` (Personal Access Token) with access to the private vault.
+2.  **Execution**: The workflow checks out the private models at runtime, injects them into the `models/` directory, and generates the daily predictions.

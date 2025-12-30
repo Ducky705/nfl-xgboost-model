@@ -7,6 +7,5 @@ venv/
 
 # Model & Data (Keep these private)
 models/*
-!models/*.enc
 !models/.keep
 data/nfl_db.pkl
