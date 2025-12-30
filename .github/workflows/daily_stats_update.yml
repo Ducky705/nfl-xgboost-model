@@ -31,6 +31,8 @@ jobs:
 
     - name: Move Models to Correct Directory
       run: |
+        # Create models directory if it doesn't exist
+        mkdir -p models
         # Move all files from the temp checkout to the models directory
         # Using cp -r to be safe, assuming flattened structure or similar
         cp -r models_temp/* models/
