@@ -657,9 +657,26 @@ if __name__ == "__main__":
                     # Format week display
                     r['week_str'] = f"W{r.get('week', '')}"
                     
+                    # Format Line display (for templates)
+                    line_val = r.get('line', '')
+                    if line_val != '' and pd.notna(line_val):
+                        r['home_spread_str'] = f"{float(line_val):+.1f}" if float(line_val) != 0 else "0"
+                    else:
+                        r['home_spread_str'] = ''
+                    
+                    # Format Edge display (for templates)
+                    fair_val = r.get('fair_value', '')
+                    if line_val != '' and fair_val != '' and pd.notna(line_val) and pd.notna(fair_val):
+                        edge = abs(float(fair_val) - float(line_val))
+                        r['edge_val'] = f"+{edge:.1f}%"
+                    else:
+                        r['edge_val'] = ''
+                    
                 except Exception:
                     r['opponent'] = ''
                     r['week_str'] = ''
+                    r['home_spread_str'] = ''
+                    r['edge_val'] = ''
 
 
         conf_level, conf_color, conf_detail = calculate_system_confidence(graded)
