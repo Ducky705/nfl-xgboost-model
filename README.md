@@ -104,5 +104,25 @@ The Astralis system is built on a distributed, micro-service-inspired architectu
 For detailed MLOps and Infrastructure specs, please consult **Section 7** of the **[Master Technical Report](docs/ASTRALIS_TECHNICAL_REPORT.md)**.
 
 ---
+
+---
+
+## 6. ADMINISTRATIVE USAGE (DECRYPTION)
+
+To unlock the proprietary model files for local development:
+
+1.  **Get your Key**: Retrieve your `MODEL_ENCRYPTION_KEY` (saved when you generated it).
+2.  **Run Decryption**:
+    ```bash
+    python scripts/model_security.py decrypt --key YOUR_KEY_HERE
+    ```
+    *Alternatively, set the environment variable `MODEL_ENCRYPTION_KEY` and run without the `--key` flag.*
+
+3.  **Re-Encrypt (Before Committing)**:
+    ```bash
+    python scripts/model_security.py encrypt --key YOUR_KEY_HERE
+    ```
+
+---
 **Astralis Quantitative Division**  
 *Proprietary Research | Internal Use Only*
