@@ -5,7 +5,7 @@ import numpy as np
 import xgboost as xgb
 from datetime import datetime
 from scipy.stats import norm
-import v2_features
+import src.features as v2_features
 
 # --- CONFIG ---
 CACHE_PATH_V2 = "data/nfl_db_v2.pkl"
