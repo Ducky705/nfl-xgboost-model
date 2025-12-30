@@ -687,16 +687,42 @@ if __name__ == "__main__":
                             except:
                                 r['edge_val'] = ''
                         else:
-                            # Spread/Total: line is a number like 45.5 or -3.5
+                            # Spread/Total: line might be "LV +2.5" or just a number
                             try:
+                                # Try parsing as just a number first
                                 line_num = float(line_val)
                                 r['home_spread_str'] = f"{line_num:+.1f}" if line_num != 0 else "0"
-                                if fair_val != '' and pd.notna(fair_val):
+                            except (ValueError, TypeError):
+                                # Extract numeric part from string like "LV +2.5"
+                                try:
+                                    parts = str(line_val).split()
+                                    if len(parts) >= 2:
+                                        numeric_part = parts[-1]  # Get the last part (the number)
+                                        line_num = float(numeric_part)
+                                        r['home_spread_str'] = f"{line_num:+.1f}" if line_num != 0 else "0"
+                                    else:
+                                        r['home_spread_str'] = str(line_val)
+                                        line_num = None
+                                except:
+                                    r['home_spread_str'] = str(line_val)
+                                    line_num = None
+                            
+                            # Calculate edge if we have a valid line number
+                            if fair_val != '' and pd.notna(fair_val):
+                                try:
+                                    # Try parsing fair_val as number
                                     fair_num = float(fair_val)
+                                except (ValueError, TypeError):
+                                    # Extract numeric part from string like "LV -2.4"
+                                    try:
+                                        fair_parts = str(fair_val).split()
+                                        fair_num = float(fair_parts[-1]) if len(fair_parts) >= 2 else None
+                                    except:
+                                        fair_num = None
+                                
+                                if line_num is not None and fair_num is not None:
                                     edge = abs(fair_num - line_num)
                                     r['edge_val'] = f"+{edge:.1f}%"
-                            except:
-                                r['home_spread_str'] = str(line_val)
                     
                 except Exception:
                     r['opponent'] = ''
