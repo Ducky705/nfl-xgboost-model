@@ -670,6 +670,7 @@ if __name__ == "__main__":
                         if bet_type == 'moneyline':
                             # Moneyline: line is like "TB -115", fair_value is like "TB -144"
                             r['home_spread_str'] = str(line_val)
+                            r['fair_value_str'] = str(fair_val) if fair_val != '' and pd.notna(fair_val) else ''
                             # Extract odds from fair_value and line to calculate edge
                             try:
                                 line_odds = int(str(line_val).split()[-1])
@@ -707,28 +708,34 @@ if __name__ == "__main__":
                                     r['home_spread_str'] = str(line_val)
                                     line_num = None
                             
-                            # Calculate edge if we have a valid line number
+                            # Calculate edge and format fair_value_str if we have valid values
                             if fair_val != '' and pd.notna(fair_val):
                                 try:
                                     # Try parsing fair_val as number
                                     fair_num = float(fair_val)
+                                    r['fair_value_str'] = f"{fair_num:+.1f}" if fair_num != 0 else "0"
                                 except (ValueError, TypeError):
                                     # Extract numeric part from string like "LV -2.4"
                                     try:
                                         fair_parts = str(fair_val).split()
                                         fair_num = float(fair_parts[-1]) if len(fair_parts) >= 2 else None
+                                        r['fair_value_str'] = f"{fair_num:+.1f}" if fair_num is not None and fair_num != 0 else str(fair_val)
                                     except:
                                         fair_num = None
+                                        r['fair_value_str'] = str(fair_val)
                                 
                                 if line_num is not None and fair_num is not None:
                                     edge = abs(fair_num - line_num)
                                     r['edge_val'] = f"+{edge:.1f}%"
+                            else:
+                                r['fair_value_str'] = ''
                     
                 except Exception:
                     r['opponent'] = ''
                     r['week_str'] = ''
                     r['home_spread_str'] = ''
                     r['edge_val'] = ''
+                    r['fair_value_str'] = ''
 
 
         conf_level, conf_color, conf_detail = calculate_system_confidence(graded)
