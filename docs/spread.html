@@ -477,9 +477,208 @@
 
                 <!-- Using delay loop index for unique animation timing -->
                 <div onclick="toggleDetails(this)"
-                    data-confidence="lean"
+                    data-confidence="solid"
                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
                     style="animation-delay: 1000ms">
+
+                    <!-- Matchup -->
+                    <div class="col-span-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg font-bold text-white">SEA</span>
+                            <span class="text-zinc-600 text-xs">@</span>
+                            <span class="text-lg font-bold text-white">SF</span>
+                        </div>
+                    </div>
+
+                    <!-- Market Line -->
+                    <div class="col-span-2 text-center">
+                        <div class="font-mono text-lg text-zinc-400">SEA -1.5</div>
+                    </div>
+
+                    <!-- Model Line -->
+                    <div class="col-span-2 text-center">
+                        <div class="font-mono text-lg text-zinc-200">SEA +3.2</div>
+                    </div>
+
+                    <!-- Edge -->
+                    <div class="col-span-2 text-center">
+                        <div class="font-mono text-lg font-bold text-orion-blue">+4.7%</div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="col-span-3 flex justify-end">
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <div class="font-mono text-xs text-zinc-500 uppercase">Stake</div>
+                                <div class="font-mono text-lg font-bold text-white">0.9u</div>
+                            </div>
+                            <button
+                                class="px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider bg-orion-blue text-black hover:bg-orion-cyan transition-colors rounded">
+                                SF
+                            </button>
+                        </div>
+                        
+                    </div>
+                </div>
+
+                <!-- EXPANDABLE DETAILS -->
+                <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
+                    style="animation-delay: 1050ms">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- FAVORING HOME -->
+                        <div>
+                            <h4
+                                class="font-mono text-[10px] text-orion-blue uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
+                                Favoring SF</h4>
+                            <div class="space-y-2">
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">home_market_performance</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 103.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+1.0</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">home_def_ypp_L3</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 35.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.3</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">away_def_pass_epa_L10</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 28.999999999999996%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.3</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">home_off_edsr_L3</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 28.999999999999996%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.3</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">home_off_epa_L3</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 19.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.2</span>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+
+                        <!-- FAVORING AWAY -->
+                        <div>
+                            <h4
+                                class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
+                                Favoring SEA</h4>
+                            <div class="space-y-2">
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">market_spread_line</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 81.0%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.8</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">implied_home_score</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 55.00000000000001%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.6</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">away_def_rush_epa_season</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 53.0%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.5</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">diff_off_epa_L3</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 16.0%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">away_def_rush_epa_L10</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 14.000000000000002%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.1</span>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+
+                <!-- Using delay loop index for unique animation timing -->
+                <div onclick="toggleDetails(this)"
+                    data-confidence="lean"
+                    class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
+                    style="animation-delay: 1100ms">
 
                     <!-- Matchup -->
                     <div class="col-span-3">
@@ -524,7 +723,7 @@
 
                 <!-- EXPANDABLE DETAILS -->
                 <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 1050ms">
+                    style="animation-delay: 1150ms">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- FAVORING HOME -->
                         <div>
@@ -678,30 +877,30 @@
                 <div onclick="toggleDetails(this)"
                     data-confidence="lean"
                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
-                    style="animation-delay: 1100ms">
+                    style="animation-delay: 1200ms">
 
                     <!-- Matchup -->
                     <div class="col-span-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-lg font-bold text-white">SEA</span>
+                            <span class="text-lg font-bold text-white">WAS</span>
                             <span class="text-zinc-600 text-xs">@</span>
-                            <span class="text-lg font-bold text-white">SF</span>
+                            <span class="text-lg font-bold text-white">PHI</span>
                         </div>
                     </div>
 
                     <!-- Market Line -->
                     <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg text-zinc-400">SEA -1.5</div>
+                        <div class="font-mono text-lg text-zinc-400">WAS +4.5</div>
                     </div>
 
                     <!-- Model Line -->
                     <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg text-zinc-200">SEA +2.1</div>
+                        <div class="font-mono text-lg text-zinc-200">WAS +8.3</div>
                     </div>
 
                     <!-- Edge -->
                     <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg font-bold text-orion-blue">+3.6%</div>
+                        <div class="font-mono text-lg font-bold text-orion-blue">+3.8%</div>
                     </div>
 
                     <!-- Action Button -->
@@ -714,7 +913,7 @@
                             </div>
                             <button
                                 class="px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider bg-orion-blue text-black hover:bg-orion-cyan transition-colors rounded">
-                                SF
+                                PHI
                             </button>
                         </div>
                         
@@ -723,77 +922,77 @@
 
                 <!-- EXPANDABLE DETAILS -->
                 <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 1150ms">
+                    style="animation-delay: 1250ms">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- FAVORING HOME -->
                         <div>
                             <h4
                                 class="font-mono text-[10px] text-orion-blue uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
-                                Favoring SF</h4>
+                                Favoring PHI</h4>
                             <div class="space-y-2">
                                 
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_market_performance</span>
+                                    <span class="text-zinc-400 font-mono">market_spread_line</span>
                                     <div class="flex items-center gap-2 w-1/2 justify-end">
                                         <div
                                             class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-orion-blue"
-                                                style="width: 72.0%"></div>
+                                                style="width: 142.0%"></div>
                                             <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
                                         </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.7</span>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+1.4</span>
                                     </div>
                                 </div>
                                 
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_def_ypp_L3</span>
+                                    <span class="text-zinc-400 font-mono">implied_home_score</span>
                                     <div class="flex items-center gap-2 w-1/2 justify-end">
                                         <div
                                             class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-orion-blue"
-                                                style="width: 35.0%"></div>
+                                                style="width: 104.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+1.0</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">away_off_rz_epa_L3</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 46.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.5</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">away_over_hit_L10</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 43.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.4</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">home_def_pass_epa_L5</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 27.0%"></div>
                                             <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
                                         </div>
                                         <span class="text-orion-blue font-bold w-8 text-right">+0.3</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_def_pass_epa_L10</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 28.999999999999996%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.3</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_off_edsr_L3</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 28.999999999999996%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.3</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_off_epa_L3</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 19.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.2</span>
                                     </div>
                                 </div>
                                 
@@ -804,66 +1003,66 @@
                         <div>
                             <h4
                                 class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
-                                Favoring SEA</h4>
+                                Favoring WAS</h4>
                             <div class="space-y-2">
                                 
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">implied_home_score</span>
+                                    <span class="text-zinc-400 font-mono">home_def_ypp_L3</span>
                                     <div class="flex items-center gap-2 w-1/2 justify-end">
                                         <div
                                             class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-zinc-400"
-                                                style="width: 82.0%"></div>
+                                                style="width: 42.0%"></div>
                                         </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.8</span>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.4</span>
                                     </div>
                                 </div>
                                 
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">market_spread_line</span>
+                                    <span class="text-zinc-400 font-mono">away_def_pass_epa_L10</span>
                                     <div class="flex items-center gap-2 w-1/2 justify-end">
                                         <div
                                             class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-zinc-400"
-                                                style="width: 79.0%"></div>
+                                                style="width: 27.0%"></div>
                                         </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.8</span>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.3</span>
                                     </div>
                                 </div>
                                 
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_def_rush_epa_season</span>
+                                    <span class="text-zinc-400 font-mono">implied_away_score</span>
                                     <div class="flex items-center gap-2 w-1/2 justify-end">
                                         <div
                                             class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-zinc-400"
-                                                style="width: 52.0%"></div>
+                                                style="width: 23.0%"></div>
                                         </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.5</span>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
                                     </div>
                                 </div>
                                 
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">diff_off_epa_L3</span>
+                                    <span class="text-zinc-400 font-mono">home_market_performance</span>
                                     <div class="flex items-center gap-2 w-1/2 justify-end">
                                         <div
                                             class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-zinc-400"
-                                                style="width: 15.0%"></div>
+                                                style="width: 18.0%"></div>
                                         </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.1</span>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
                                     </div>
                                 </div>
                                 
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_def_rush_epa_L10</span>
+                                    <span class="text-zinc-400 font-mono">home_def_epa_season</span>
                                     <div class="flex items-center gap-2 w-1/2 justify-end">
                                         <div
                                             class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-zinc-400"
-                                                style="width: 15.0%"></div>
+                                                style="width: 17.0%"></div>
                                         </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.1</span>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
                                     </div>
                                 </div>
                                 
@@ -877,7 +1076,7 @@
                 <div onclick="toggleDetails(this)"
                     data-confidence="lean"
                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
-                    style="animation-delay: 1200ms">
+                    style="animation-delay: 1300ms">
 
                     <!-- Matchup -->
                     <div class="col-span-3">
@@ -916,7 +1115,7 @@
 
                 <!-- EXPANDABLE DETAILS -->
                 <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 1250ms">
+                    style="animation-delay: 1350ms">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- FAVORING HOME -->
                         <div>
@@ -1070,7 +1269,7 @@
                 <div onclick="toggleDetails(this)"
                     data-confidence="lean"
                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
-                    style="animation-delay: 1300ms">
+                    style="animation-delay: 1400ms">
 
                     <!-- Matchup -->
                     <div class="col-span-3">
@@ -1109,7 +1308,7 @@
 
                 <!-- EXPANDABLE DETAILS -->
                 <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 1350ms">
+                    style="animation-delay: 1450ms">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- FAVORING HOME -->
                         <div>
@@ -1263,7 +1462,7 @@
                 <div onclick="toggleDetails(this)"
                     data-confidence="lean"
                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
-                    style="animation-delay: 1400ms">
+                    style="animation-delay: 1500ms">
 
                     <!-- Matchup -->
                     <div class="col-span-3">
@@ -1302,7 +1501,7 @@
 
                 <!-- EXPANDABLE DETAILS -->
                 <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 1450ms">
+                    style="animation-delay: 1550ms">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- FAVORING HOME -->
                         <div>
@@ -1456,7 +1655,7 @@
                 <div onclick="toggleDetails(this)"
                     data-confidence="lean"
                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
-                    style="animation-delay: 1500ms">
+                    style="animation-delay: 1600ms">
 
                     <!-- Matchup -->
                     <div class="col-span-3">
@@ -1495,7 +1694,7 @@
 
                 <!-- EXPANDABLE DETAILS -->
                 <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 1550ms">
+                    style="animation-delay: 1650ms">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- FAVORING HOME -->
                         <div>
@@ -1649,7 +1848,7 @@
                 <div onclick="toggleDetails(this)"
                     data-confidence="lean"
                     class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
-                    style="animation-delay: 1600ms">
+                    style="animation-delay: 1700ms">
 
                     <!-- Matchup -->
                     <div class="col-span-3">
@@ -1662,17 +1861,17 @@
 
                     <!-- Market Line -->
                     <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg text-zinc-400">NO +3.5</div>
+                        <div class="font-mono text-lg text-zinc-400">NO +3.0</div>
                     </div>
 
                     <!-- Model Line -->
                     <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg text-zinc-200">NO +5.4</div>
+                        <div class="font-mono text-lg text-zinc-200">NO +4.8</div>
                     </div>
 
                     <!-- Edge -->
                     <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg font-bold text-orion-blue">+1.9%</div>
+                        <div class="font-mono text-lg font-bold text-orion-blue">+1.8%</div>
                     </div>
 
                     <!-- Action Button -->
@@ -1688,7 +1887,7 @@
 
                 <!-- EXPANDABLE DETAILS -->
                 <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 1650ms">
+                    style="animation-delay: 1750ms">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- FAVORING HOME -->
                         <div>
@@ -1703,10 +1902,10 @@
                                         <div
                                             class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-orion-blue"
-                                                style="width: 131.0%"></div>
+                                                style="width: 83.0%"></div>
                                             <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
                                         </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+1.3</span>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.8</span>
                                     </div>
                                 </div>
                                 
@@ -1742,7 +1941,7 @@
                                         <div
                                             class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-orion-blue"
-                                                style="width: 20.0%"></div>
+                                                style="width: 19.0%"></div>
                                             <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
                                         </div>
                                         <span class="text-orion-blue font-bold w-8 text-right">+0.2</span>
@@ -1785,7 +1984,7 @@
                                 </div>
                                 
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_market_performance</span>
+                                    <span class="text-zinc-400 font-mono">away_off_rz_epa_L10</span>
                                     <div class="flex items-center gap-2 w-1/2 justify-end">
                                         <div
                                             class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
@@ -1797,12 +1996,12 @@
                                 </div>
                                 
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_off_rz_epa_L10</span>
+                                    <span class="text-zinc-400 font-mono">home_market_performance</span>
                                     <div class="flex items-center gap-2 w-1/2 justify-end">
                                         <div
                                             class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-zinc-400"
-                                                style="width: 22.0%"></div>
+                                                style="width: 20.0%"></div>
                                         </div>
                                         <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
                                     </div>
@@ -1827,199 +2026,6 @@
                                             class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
                                             <div class="h-full bg-zinc-400"
                                                 style="width: 12.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.1</span>
-                                    </div>
-                                </div>
-                                
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-
-                <!-- Using delay loop index for unique animation timing -->
-                <div onclick="toggleDetails(this)"
-                    data-confidence="lean"
-                    class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
-                    style="animation-delay: 1700ms">
-
-                    <!-- Matchup -->
-                    <div class="col-span-3">
-                        <div class="flex items-center gap-2">
-                            <span class="text-lg font-bold text-white">WAS</span>
-                            <span class="text-zinc-600 text-xs">@</span>
-                            <span class="text-lg font-bold text-white">PHI</span>
-                        </div>
-                    </div>
-
-                    <!-- Market Line -->
-                    <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg text-zinc-400">WAS +7.0</div>
-                    </div>
-
-                    <!-- Model Line -->
-                    <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg text-zinc-200">WAS +8.9</div>
-                    </div>
-
-                    <!-- Edge -->
-                    <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg font-bold text-orion-blue">+1.9%</div>
-                    </div>
-
-                    <!-- Action Button -->
-                    <div class="col-span-3 flex justify-end">
-                        
-                        <div
-                            class="px-4 py-2 bg-zinc-800/50 text-zinc-500 font-mono text-xs font-bold uppercase tracking-wider rounded">
-                            NO EDGE
-                        </div>
-                        
-                    </div>
-                </div>
-
-                <!-- EXPANDABLE DETAILS -->
-                <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 1750ms">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- FAVORING HOME -->
-                        <div>
-                            <h4
-                                class="font-mono text-[10px] text-orion-blue uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
-                                Favoring PHI</h4>
-                            <div class="space-y-2">
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">market_spread_line</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 196.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+2.0</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">implied_home_score</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 102.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+1.0</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_off_rz_epa_L3</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 51.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.5</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_over_hit_L10</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 43.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.4</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_def_edsr_L5</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 27.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.3</span>
-                                    </div>
-                                </div>
-                                
-                            </div>
-                        </div>
-
-                        <!-- FAVORING AWAY -->
-                        <div>
-                            <h4
-                                class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
-                                Favoring WAS</h4>
-                            <div class="space-y-2">
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_def_ypp_L3</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 42.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.4</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_def_pass_epa_L10</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 27.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.3</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_market_performance</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 21.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_def_epa_season</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 17.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_def_sack_rate_season</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 14.000000000000002%"></div>
                                         </div>
                                         <span class="text-zinc-400 font-bold w-8 text-right">0.1</span>
                                     </div>
@@ -2233,199 +2239,6 @@
                     <!-- Matchup -->
                     <div class="col-span-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-lg font-bold text-white">GB</span>
-                            <span class="text-zinc-600 text-xs">@</span>
-                            <span class="text-lg font-bold text-white">MIN</span>
-                        </div>
-                    </div>
-
-                    <!-- Market Line -->
-                    <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg text-zinc-400">GB +6.5</div>
-                    </div>
-
-                    <!-- Model Line -->
-                    <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg text-zinc-200">GB +5.0</div>
-                    </div>
-
-                    <!-- Edge -->
-                    <div class="col-span-2 text-center">
-                        <div class="font-mono text-lg font-bold text-orion-blue">+1.5%</div>
-                    </div>
-
-                    <!-- Action Button -->
-                    <div class="col-span-3 flex justify-end">
-                        
-                        <div
-                            class="px-4 py-2 bg-zinc-800/50 text-zinc-500 font-mono text-xs font-bold uppercase tracking-wider rounded">
-                            NO EDGE
-                        </div>
-                        
-                    </div>
-                </div>
-
-                <!-- EXPANDABLE DETAILS -->
-                <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 1950ms">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- FAVORING HOME -->
-                        <div>
-                            <h4
-                                class="font-mono text-[10px] text-orion-blue uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
-                                Favoring MIN</h4>
-                            <div class="space-y-2">
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">market_spread_line</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 172.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+1.7</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">implied_home_score</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 126.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+1.3</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_def_edsr_L5</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 23.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.2</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_def_epa_L5</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 23.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.2</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_def_pass_epa_L5</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-orion-blue"
-                                                style="width: 22.0%"></div>
-                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
-                                        </div>
-                                        <span class="text-orion-blue font-bold w-8 text-right">+0.2</span>
-                                    </div>
-                                </div>
-                                
-                            </div>
-                        </div>
-
-                        <!-- FAVORING AWAY -->
-                        <div>
-                            <h4
-                                class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
-                                Favoring GB</h4>
-                            <div class="space-y-2">
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">home_def_ypp_L3</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 52.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.5</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">diff_off_sack_rate_L10</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 33.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.3</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_def_edsr_L3</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 25.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">away_def_pass_epa_L10</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 21.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-zinc-400 font-mono">implied_away_score</span>
-                                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                                        <div
-                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
-                                            <div class="h-full bg-zinc-400"
-                                                style="width: 21.0%"></div>
-                                        </div>
-                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
-                                    </div>
-                                </div>
-                                
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-
-                <!-- Using delay loop index for unique animation timing -->
-                <div onclick="toggleDetails(this)"
-                    data-confidence="lean"
-                    class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
-                    style="animation-delay: 2000ms">
-
-                    <!-- Matchup -->
-                    <div class="col-span-3">
-                        <div class="flex items-center gap-2">
                             <span class="text-lg font-bold text-white">CAR</span>
                             <span class="text-zinc-600 text-xs">@</span>
                             <span class="text-lg font-bold text-white">TB</span>
@@ -2460,7 +2273,7 @@
 
                 <!-- EXPANDABLE DETAILS -->
                 <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
-                    style="animation-delay: 2050ms">
+                    style="animation-delay: 1950ms">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- FAVORING HOME -->
                         <div>
@@ -2601,6 +2414,199 @@
                                                 style="width: 11.0%"></div>
                                         </div>
                                         <span class="text-zinc-400 font-bold w-8 text-right">0.1</span>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+
+                <!-- Using delay loop index for unique animation timing -->
+                <div onclick="toggleDetails(this)"
+                    data-confidence="lean"
+                    class="signal-row grid grid-cols-1 md:grid-cols-12 gap-6 p-5 border-l-4 border-l-orion-blue border-y border-r border-border-dim bg-panel items-center transition-all duration-300 opacity-0 animate-enter"
+                    style="animation-delay: 2000ms">
+
+                    <!-- Matchup -->
+                    <div class="col-span-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg font-bold text-white">GB</span>
+                            <span class="text-zinc-600 text-xs">@</span>
+                            <span class="text-lg font-bold text-white">MIN</span>
+                        </div>
+                    </div>
+
+                    <!-- Market Line -->
+                    <div class="col-span-2 text-center">
+                        <div class="font-mono text-lg text-zinc-400">GB +7.0</div>
+                    </div>
+
+                    <!-- Model Line -->
+                    <div class="col-span-2 text-center">
+                        <div class="font-mono text-lg text-zinc-200">GB +6.1</div>
+                    </div>
+
+                    <!-- Edge -->
+                    <div class="col-span-2 text-center">
+                        <div class="font-mono text-lg font-bold text-orion-blue">+0.9%</div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="col-span-3 flex justify-end">
+                        
+                        <div
+                            class="px-4 py-2 bg-zinc-800/50 text-zinc-500 font-mono text-xs font-bold uppercase tracking-wider rounded">
+                            NO EDGE
+                        </div>
+                        
+                    </div>
+                </div>
+
+                <!-- EXPANDABLE DETAILS -->
+                <div class="details-row hidden border-l-4 border-l-zinc-800 border-r border-b border-border-dim bg-zinc-950 p-6 opacity-0 animate-enter"
+                    style="animation-delay: 2050ms">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- FAVORING HOME -->
+                        <div>
+                            <h4
+                                class="font-mono text-[10px] text-orion-blue uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
+                                Favoring MIN</h4>
+                            <div class="space-y-2">
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">market_spread_line</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 204.99999999999997%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+2.0</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">implied_home_score</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 125.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+1.2</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">home_def_edsr_L5</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 24.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.2</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">home_def_epa_L5</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 23.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.2</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">home_def_pass_epa_L5</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-orion-blue/30 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-orion-blue"
+                                                style="width: 21.0%"></div>
+                                            <!-- Note: Scaling is arbitrary, assuming max contrib around 1.0 margin points per feature? -->
+                                        </div>
+                                        <span class="text-orion-blue font-bold w-8 text-right">+0.2</span>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+
+                        <!-- FAVORING AWAY -->
+                        <div>
+                            <h4
+                                class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mb-3 border-b border-zinc-800 pb-1">
+                                Favoring GB</h4>
+                            <div class="space-y-2">
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">home_def_ypp_L3</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 52.0%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.5</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">diff_off_sack_rate_L10</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 33.0%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.3</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">away_def_edsr_L3</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 25.0%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">away_def_pass_epa_L10</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 21.0%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-zinc-400 font-mono">implied_away_score</span>
+                                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                                        <div
+                                            class="h-1.5 bg-zinc-700 rounded-full w-full max-w-[100px] overflow-hidden">
+                                            <div class="h-full bg-zinc-400"
+                                                style="width: 21.0%"></div>
+                                        </div>
+                                        <span class="text-zinc-400 font-bold w-8 text-right">0.2</span>
                                     </div>
                                 </div>
                                 
