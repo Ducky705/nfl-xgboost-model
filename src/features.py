@@ -116,7 +116,8 @@ def engineering_pipeline(raw_data):
         # Map them from schedule in raw_data
         sched = raw_data['schedule']
         scores = sched[['season', 'week', 'home_team', 'away_team', 'home_score', 'away_score', 'spread_line', 'total_line', 'home_moneyline', 'away_moneyline', 'game_type']]
-        scores = scores[scores['game_type'] == 'REG']
+        valid_types = ['REG', 'WC', 'DIV', 'CON', 'SB']
+        scores = scores[scores['game_type'].isin(valid_types)]
         
         # Merge scores and betting lines
         games = games.merge(scores[['season', 'week', 'home_team', 'away_team', 'home_score', 'away_score', 'spread_line', 'total_line', 'home_moneyline', 'away_moneyline']], 

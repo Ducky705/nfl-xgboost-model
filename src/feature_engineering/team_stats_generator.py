@@ -37,7 +37,8 @@ class TeamStatsGenerator(BaseFeatureGenerator):
         return rolling
         
     def _calculate_betting_stats(self, schedule):
-        games = schedule[schedule['game_type'] == 'REG'].copy()
+        valid_types = ['REG', 'WC', 'DIV', 'CON', 'SB']
+        games = schedule[schedule['game_type'].isin(valid_types)].copy()
         games['home_margin'] = games['home_score'] - games['away_score']
         games['home_cover'] = (games['home_margin'] > (-1 * games['spread_line'])).astype(int)
         games['away_cover'] = (games['home_margin'] < (-1 * games['spread_line'])).astype(int)
@@ -59,7 +60,8 @@ class TeamStatsGenerator(BaseFeatureGenerator):
         return pd.concat([home_df, away_df]).sort_values(['team', 'season', 'week'])
 
     def _add_scores(self, stats_df, schedule):
-        games_tmp = schedule[schedule['game_type'] == 'REG'].copy()
+        valid_types = ['REG', 'WC', 'DIV', 'CON', 'SB']
+        games_tmp = schedule[schedule['game_type'].isin(valid_types)].copy()
         h = games_tmp[['season', 'week', 'home_team', 'home_score', 'away_score']].rename(columns={'home_team': 'team', 'home_score': 'points_scored', 'away_score': 'points_allowed'})
         a = games_tmp[['season', 'week', 'away_team', 'away_score', 'home_score']].rename(columns={'away_team': 'team', 'away_score': 'points_scored', 'home_score': 'points_allowed'})
         scores = pd.concat([h, a])

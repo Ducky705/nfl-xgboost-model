@@ -7,7 +7,7 @@ import pickle
 from datetime import datetime
 
 # --- CONFIG ---
-CACHE_PATH = "data/nfl_db.pkl"
+CACHE_PATH = "data/nfl_db_v2.pkl"
 MODEL_PATH = "models/nfl_bettor.json"
 TEAM_MAP = {'ARZ': 'ARI', 'BLT': 'BAL', 'CLV': 'CLE', 'HST': 'HOU', 'SD': 'LAC', 'SL': 'LA', 'STL': 'LA', 'OAK': 'LV'}
 
@@ -26,6 +26,9 @@ def get_team_stats(df, full_pbp):
     st = full_pbp[full_pbp['special_teams_play'] == 1].groupby(['season', 'week', 'posteam'])['epa'].mean().reset_index().rename(columns={'posteam': 'team', 'epa': 'st_epa'})
     tos = full_pbp.groupby(['season', 'week', 'posteam']).agg({'fumble_lost': 'sum', 'interception': 'sum'}).reset_index()
     tos['turnovers_lost'] = tos['fumble_lost'] + tos['interception']
+    
+    def_tos = full_pbp.groupby(['season', 'week', 'defteam']).agg({'fumble_lost': 'sum', 'interception': 'sum'}).reset_index().rename(columns={'defteam': 'team'})
+    def_tos['turnovers_gained'] = def_tos['fumble_lost'] + def_tos['interception']
     penalties = full_pbp[full_pbp['penalty'] == 1].groupby(['season', 'week', 'penalty_team']).agg({'penalty_yards': 'sum'}).reset_index().rename(columns={'penalty_team': 'team', 'penalty_yards': 'pen_yards'})
     rz = df[df['yardline_100'] <= 20].groupby(['season', 'week', 'posteam'])['epa'].mean().reset_index().rename(columns={'posteam': 'team', 'epa': 'off_rz_epa'})
 
@@ -33,14 +36,37 @@ def get_team_stats(df, full_pbp):
     merged = merged.merge(off_sacks, on=['season', 'week', 'team'], how='left').merge(def_sacks, on=['season', 'week', 'team'], how='left')
     merged = merged.merge(st, on=['season', 'week', 'team'], how='left')
     merged = merged.merge(tos[['season', 'week', 'posteam', 'turnovers_lost']].rename(columns={'posteam': 'team'}), on=['season', 'week', 'team'], how='left')
+    merged = merged.merge(def_tos[['season', 'week', 'team', 'turnovers_gained']], on=['season', 'week', 'team'], how='left')
     merged = merged.merge(penalties, on=['season', 'week', 'team'], how='left')
     merged = merged.merge(rz, on=['season', 'week', 'team'], how='left')
+    def_rush = df[df['rush'] == 1].groupby(['season', 'week', 'defteam'])['epa'].mean().reset_index().rename(columns={'defteam': 'team', 'epa': 'def_rush_epa'})
+    merged = merged.merge(def_rush, on=['season', 'week', 'team'], how='left')
+    
+    def_ypp_df = df.groupby(['season', 'week', 'defteam'])['yards_gained'].mean().reset_index().rename(columns={'defteam': 'team', 'yards_gained': 'def_ypp'})
+    merged = merged.merge(def_ypp_df, on=['season', 'week', 'team'], how='left')
+
+    def_edsr_df = df[df['down'].isin([1, 2])].groupby(['season', 'week', 'defteam'])['success'].mean().reset_index().rename(columns={'defteam': 'team', 'success': 'def_edsr'})
+    merged = merged.merge(def_edsr_df, on=['season', 'week', 'team'], how='left')
+
     pass_df = df[df['pass'] == 1].groupby(['season', 'week', 'posteam'])['epa'].mean().reset_index().rename(columns={'posteam': 'team', 'epa': 'off_pass_epa'})
     merged = merged.merge(pass_df, on=['season', 'week', 'team'], how='left')
+
+    # Add Missing Stats for v3 Pipeline
+    rush_df = df[df['rush'] == 1].groupby(['season', 'week', 'posteam'])['epa'].mean().reset_index().rename(columns={'posteam': 'team', 'epa': 'off_rush_epa'})
+    merged = merged.merge(rush_df, on=['season', 'week', 'team'], how='left')
+    
+    def_epa = df.groupby(['season', 'week', 'defteam'])['epa'].mean().reset_index().rename(columns={'defteam': 'team', 'epa': 'def_epa'})
+    merged = merged.merge(def_epa, on=['season', 'week', 'team'], how='left')
+    
+    def_pass = df[df['pass'] == 1].groupby(['season', 'week', 'defteam'])['epa'].mean().reset_index().rename(columns={'defteam': 'team', 'epa': 'def_pass_epa'})
+    merged = merged.merge(def_pass, on=['season', 'week', 'team'], how='left')
+
     return merged.fillna(0)
 
 def engineer_features(schedule, stats, qb_db):
-    games = schedule[schedule['game_type'] == 'REG'].copy()
+    # Allow REG and Playoff games
+    valid_types = ['REG', 'WC', 'DIV', 'CON', 'SB']
+    games = schedule[schedule['game_type'].isin(valid_types)].copy()
     games['home_team'] = games['home_team'].replace(TEAM_MAP)
     games['away_team'] = games['away_team'].replace(TEAM_MAP)
     games = games.drop(columns=['home_rest', 'away_rest'], errors='ignore')
@@ -84,6 +110,12 @@ if __name__ == "__main__":
     print(f"📥 Downloading Data...")
     schedule = nfl.import_schedules(YEARS)
     pbp = nfl.import_pbp_data(YEARS)
+    print("🚑 Downloading Injuries...")
+    try:
+        injury_stats = nfl.import_injuries(YEARS)
+    except:
+        print("Warning: Could not fetch injuries. Using empty DataFrame.")
+        injury_stats = pd.DataFrame()
 
     print("⚙️  Processing Stats...")
     pbp['posteam'] = pbp['posteam'].replace(TEAM_MAP)
@@ -91,11 +123,13 @@ if __name__ == "__main__":
     pbp_clean = pbp[((pbp['pass'] == 1) | (pbp['rush'] == 1)) & (pbp['wp'] > 0.05) & (pbp['wp'] < 0.95)].dropna(subset=['epa', 'posteam', 'defteam', 'success', 'yards_gained'])
     stats = get_team_stats(pbp_clean, pbp).sort_values(['team', 'season', 'week'])
 
-    metrics = ['off_epa', 'off_ypp', 'off_pass_epa', 'off_edsr', 'off_sack_rate', 'def_sack_rate', 'st_epa', 'turnovers_lost', 'pen_yards', 'off_rz_epa']
+    metrics = ['off_epa', 'off_ypp', 'off_pass_epa', 'off_edsr', 'off_sack_rate', 'def_sack_rate', 'st_epa', 'turnovers_lost', 'pen_yards', 'off_rz_epa', 'off_rush_epa', 'def_epa', 'def_pass_epa', 'turnovers_gained', 'def_ypp', 'def_rush_epa', 'def_edsr']
     for col in metrics:
         stats[f'{col}_long'] = stats.groupby(['team', 'season'])[col].transform(lambda x: x.shift(1).ewm(span=10).mean())
 
-    games_raw = schedule[schedule['game_type'] == 'REG'].copy()
+    # Allow REG and Playoff games
+    valid_types = ['REG', 'WC', 'DIV', 'CON', 'SB']
+    games_raw = schedule[schedule['game_type'].isin(valid_types)].copy()
     games_scored = games_raw.dropna(subset=['home_score', 'away_score'])
     home = games_scored[['season', 'week', 'home_team', 'home_score', 'away_score']].rename(columns={'home_team': 'team', 'home_score': 'pf', 'away_score': 'pa'})
     away = games_scored[['season', 'week', 'away_team', 'away_score', 'home_score']].rename(columns={'away_team': 'team', 'away_score': 'pf', 'home_score': 'pa'})
@@ -146,6 +180,9 @@ if __name__ == "__main__":
     db = {
         'model': model, # Now always a Booster
         'games_df': full_games_df, 
+        'schedule': schedule,
+        'base_stats': stats,
+        'injury_stats': injury_stats,
         'current_season': CURRENT_SEASON,
         'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M UTC")
     }

@@ -12,7 +12,8 @@ class MarketGenerator(BaseFeatureGenerator):
     def generate(self):
         print("   [Market] Generating Market-Implied features...")
         schedule = self.raw_data['schedule']
-        games = schedule[schedule['game_type'] == 'REG'].copy()
+        valid_types = ['REG', 'WC', 'DIV', 'CON', 'SB']
+        games = schedule[schedule['game_type'].isin(valid_types)].copy()
         
         # Ensure float
         games['spread_line'] = games['spread_line'].astype(float)

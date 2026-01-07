@@ -291,7 +291,8 @@ def run_predictions(db, spread_model, total_model, ml_model, override_week=None,
         upcoming = schedule[(schedule['season'] == CURRENT_SEASON) & (schedule['week'] == override_week)].copy()
         next_week = override_week
     else:
-        upcoming = schedule[(schedule['season'] == CURRENT_SEASON) & (schedule['result'].isna()) & (schedule['game_type'] == 'REG')].copy()
+        valid_types = ['REG', 'WC', 'DIV', 'CON', 'SB']
+        upcoming = schedule[(schedule['season'] == CURRENT_SEASON) & (schedule['result'].isna()) & (schedule['game_type'].isin(valid_types))].copy()
         # Enforce min_week constraint (strictly greater than last graded)
         upcoming = upcoming[upcoming['week'] > min_week]
         
@@ -658,7 +659,7 @@ if __name__ == "__main__":
             (schedule['season'] == CURRENT_SEASON) & 
             (schedule['week'] == last_graded_week) & 
             (schedule['result'].isna()) &
-            (schedule['game_type'] == 'REG')
+            (schedule['game_type'].isin(['REG', 'WC', 'DIV', 'CON', 'SB']))
         ]
         if not pending.empty:
             print(f"Week {last_graded_week} incomplete ({len(pending)} games pending). Staying on Week {last_graded_week}.")
@@ -678,6 +679,7 @@ if __name__ == "__main__":
             active_bets = [b for b in active_bets if b.get('game_id') in pending_game_ids]
             
         active_bets.sort(key=lambda x: (x['units'], x['Edge']), reverse=True)
+    
     
     # Partition Active Bets
     spread_bets = [x for x in active_bets if x.get('type') == 'spread']

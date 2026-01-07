@@ -12,7 +12,8 @@ class SituationalGenerator(BaseFeatureGenerator):
         schedule = self.raw_data['schedule']
         
         
-        games = schedule[schedule['game_type'] == 'REG'].copy()
+        valid_types = ['REG', 'WC', 'DIV', 'CON', 'SB']
+        games = schedule[schedule['game_type'].isin(valid_types)].copy()
         
         # Drop pre-existing rest columns if they exist (nfl_data_py sometimes has them)
         games = games.drop(columns=['home_rest', 'away_rest'], errors='ignore')
