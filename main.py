@@ -765,15 +765,28 @@ if __name__ == "__main__":
                             try:
                                 # Try parsing as just a number first
                                 line_num = float(line_val)
-                                r['home_spread_str'] = f"{line_num:+.1f}" if line_num != 0 else "0"
+                                # For totals, display as-is
+                                if bet_type == 'total':
+                                    r['home_spread_str'] = f"{line_num:.1f}"
+                                else:
+                                    r['home_spread_str'] = f"{line_num:+.1f}" if line_num != 0 else "0"
                             except (ValueError, TypeError):
-                                # Extract numeric part from string like "LV +2.5"
+                                # Extract numeric part from string like "LV +2.5" (this is AWAY team spread)
                                 try:
                                     parts = str(line_val).split()
                                     if len(parts) >= 2:
                                         numeric_part = parts[-1]  # Get the last part (the number)
-                                        line_num = float(numeric_part)
-                                        r['home_spread_str'] = f"{line_num:+.1f}" if line_num != 0 else "0"
+                                        away_spread = float(numeric_part)
+                                        # For SPREAD bets: convert away spread to home spread (negate)
+                                        # e.g., if away is -2.5 (favored), home is +2.5 (underdog)
+                                        if bet_type == 'spread':
+                                            home_spread = -1 * away_spread
+                                            r['home_spread_str'] = f"{home_spread:+.1f}" if home_spread != 0 else "PK"
+                                            line_num = home_spread  # Use home spread for edge calc
+                                        else:
+                                            # For totals, keep as-is
+                                            r['home_spread_str'] = str(line_val)
+                                            line_num = away_spread
                                     else:
                                         r['home_spread_str'] = str(line_val)
                                         line_num = None
@@ -786,20 +799,30 @@ if __name__ == "__main__":
                                 try:
                                     # Try parsing fair_val as number
                                     fair_num = float(fair_val)
-                                    r['fair_value_str'] = f"{fair_num:+.1f}" if fair_num != 0 else "0"
+                                    if bet_type == 'total':
+                                        r['fair_value_str'] = f"{fair_num:.1f}"
+                                    else:
+                                        r['fair_value_str'] = f"{fair_num:+.1f}" if fair_num != 0 else "0"
                                 except (ValueError, TypeError):
-                                    # Extract numeric part from string like "LV -2.4"
+                                    # Extract numeric part from string like "LV -2.4" (AWAY team fair spread)
                                     try:
                                         fair_parts = str(fair_val).split()
-                                        fair_num = float(fair_parts[-1]) if len(fair_parts) >= 2 else None
-                                        r['fair_value_str'] = f"{fair_num:+.1f}" if fair_num is not None and fair_num != 0 else str(fair_val)
+                                        away_fair = float(fair_parts[-1]) if len(fair_parts) >= 2 else None
+                                        # For SPREAD bets: convert to home team's fair spread
+                                        if bet_type == 'spread' and away_fair is not None:
+                                            home_fair = -1 * away_fair
+                                            r['fair_value_str'] = f"{home_fair:+.1f}" if home_fair != 0 else "PK"
+                                            fair_num = home_fair
+                                        else:
+                                            fair_num = away_fair
+                                            r['fair_value_str'] = f"{fair_num:+.1f}" if fair_num is not None and fair_num != 0 else str(fair_val)
                                     except:
                                         fair_num = None
                                         r['fair_value_str'] = str(fair_val)
                                 
                                 if line_num is not None and fair_num is not None:
                                     edge = abs(fair_num - line_num)
-                                    r['edge_val'] = f"+{edge:.1f}%"
+                                    r['edge_val'] = f"+{edge:.1f}"
                             else:
                                 r['fair_value_str'] = ''
                     
